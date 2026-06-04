@@ -1,0 +1,213 @@
+spring:
+  application:
+    name: pansin-access
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pansin}
+    username: ${DB_USERNAME:pansin}
+    password: ${DB_PASSWORD:pansin}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 50
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+        format_sql: false
+
+  # JANGAN AUTO RUN MIGRATION - per requirement
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: pansin-access
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.bjb.pansin.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,loggers,env
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# Application specific config
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-with-a-very-long-random-base64-secret-key-please-rotate}
+    access-token-ttl: 900            # 15 minutes
+    refresh-token-ttl: 604800        # 7 days
+    issuer: pansin-access
+
+  security:
+    cors:
+      allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:5173}
+      allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+      allowed-headers: "*"
+      exposed-headers: Authorization,Content-Disposition
+      allow-credentials: true
+      max-age: 3600
+    rate-limit:
+      capacity: 100
+      refill-tokens: 100
+      refill-period-seconds: 60
+    login:
+      max-failed-attempts: 5
+      lock-duration-minutes: 15
+    ip-whitelist:
+      enabled: false
+      ips: []
+    totp:
+      secret: ${TOTP_SECRET:JBSWY3DPEHPK3PXP}
+      issuer: PANSIN-ACCESS
+
+  otp:
+    length: 6
+    ttl-seconds: 300
+    resend-cooldown-seconds: 60
+
+  mqtt:
+    broker-url: ${MQTT_URL:tcp://localhost:1883}
+    client-id: ${MQTT_CLIENT_ID:pansin-access-server}
+    username: ${MQTT_USERNAME:pansin}
+    password: ${MQTT_PASSWORD:pansin}
+    qos: 1
+    keep-alive: 30
+    clean-session: true
+    topics:
+      vault-open: vault/open
+      vault-close: vault/close
+      vault-alarm: vault/alarm
+      vault-emergency: vault/emergency
+      fingerprint-scan: fingerprint/scan
+      fingerprint-register: fingerprint/register
+      device-heartbeat: device/heartbeat
+      device-status: device/status
+      maintenance-reminder: maintenance/reminder
+
+  websocket:
+    endpoint: /ws
+    allowed-origins: ${WS_ORIGINS:http://localhost:3000,http://localhost:5173}
+
+  vault:
+    session:
+      max-duration-seconds: 600
+      warning-duration-seconds: 480
+
+  mediamtx:
+    base-url: ${MEDIAMTX_URL:http://localhost:9997}
+    username: ${MEDIAMTX_USERNAME:}
+    password: ${MEDIAMTX_PASSWORD:}
+    snapshot-path: ${MEDIAMTX_SNAPSHOT_PATH:./storage/snapshots}
+
+  notification:
+    whatsapp:
+      provider: ${WA_PROVIDER:fonnte}   # fonnte | wablas | meta
+      api-url: ${WA_API_URL:https://api.fonnte.com/send}
+      api-token: ${WA_API_TOKEN:}
+      sender: ${WA_SENDER:}
+    email:
+      from: ${MAIL_FROM:no-reply@pansin.local}
+
+  storage:
+    base-path: ${STORAGE_PATH:./storage}
+    snapshot-path: ${STORAGE_PATH:./storage}/snapshots
+    report-path: ${STORAGE_PATH:./storage}/reports
+
+  kafka:
+    topics:
+      vault-events: vault-events
+      alarm-events: alarm-events
+      notification-events: notification-events
+      snapshot-events: snapshot-events
+      audit-events: audit-events
+      maintenance-events: maintenance-events
+
+logging:
+  level:
+    root: INFO
+    com.bjb.pansin: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO

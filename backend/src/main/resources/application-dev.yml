@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pansin
+    username: postgres
+    password: makanbang
+  
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.bjb.pansin: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG

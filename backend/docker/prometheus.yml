@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: pansin-api
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['pansin-api:8080']
+        labels:
+          application: pansin-access
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
