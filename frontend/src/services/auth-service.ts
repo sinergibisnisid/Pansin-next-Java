@@ -40,6 +40,38 @@ export const authService = {
     return response.data.data;
   },
 
+  // DEV ONLY: Bypass OTP login
+  loginBypassOtp: async (credentials: LoginCredentials): Promise<{ user: User; tokens: AuthTokens }> => {
+    const response = await apiClient.post('/debug/auth/login-no-otp', {
+      identifier: credentials.username,
+      password: credentials.password,
+      userAgent: navigator.userAgent,
+    });
+    
+    const data: TokenResponse = response.data.data;
+    
+    return {
+      user: {
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        fullName: data.user.fullName,
+        role: data.user.roles[0] as any,
+        permissions: data.user.permissions as any[],
+        branchId: data.user.branchId || '',
+        branchName: '',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      tokens: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        expiresAt: Date.now() + data.expiresIn * 1000,
+      },
+    };
+  },
+
   verifyLoginOtp: async (otpSessionId: string, otp: string): Promise<{ user: User; tokens: AuthTokens }> => {
     const response = await apiClient.post('/auth/login/verify-otp', {
       otpSessionId,

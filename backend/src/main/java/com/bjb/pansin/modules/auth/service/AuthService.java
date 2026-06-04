@@ -73,6 +73,9 @@ public class AuthService {
         // Generate OTP session instead of JWT directly
         String otpSessionId = UUID.randomUUID().toString();
         String otp = otpService.generateAndStore(principal.getUsername());
+        
+        // DEV MODE: Log OTP for testing (remove in production)
+        log.warn("=== DEV OTP === User: {}, OTP: {} ===", principal.getUsername(), otp);
 
         // Store session metadata in Redis (5 minutes TTL)
         String sessionKey = "auth:otp-session:" + otpSessionId;

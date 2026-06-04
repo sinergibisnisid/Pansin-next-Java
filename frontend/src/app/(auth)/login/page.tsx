@@ -53,18 +53,19 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const result = await authService.login({
+      // DEV MODE: Use bypass OTP login
+      const result = await authService.loginBypassOtp({
         username: data.username,
         password: data.password,
         rememberMe: data.rememberMe,
       });
       
-      // Step 1 success: Show OTP modal
-      setOtpSessionId(result.otpSessionId);
-      setOtpMethod('whatsapp');
-      setShowOTPModal(true);
+      // Direct login without OTP
+      login(result.user, result.tokens);
+      const redirectPath = getDefaultRedirectPath(result.user);
+      router.push(redirectPath);
     } catch {
-      setError('Invalid username or password. Try admin / admin123');
+      setError('Username atau password salah');
     } finally {
       setIsLoading(false);
     }
