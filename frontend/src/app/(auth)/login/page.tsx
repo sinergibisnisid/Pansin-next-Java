@@ -15,6 +15,7 @@ import { useAuthStore } from '@/stores';
 import { authService } from '@/services';
 import { APP_NAME, APP_DESCRIPTION } from '@/constants';
 import { cn } from '@/lib/utils';
+import { getDefaultRedirectPath } from '@/lib/rbac';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -76,7 +77,8 @@ export default function LoginPage() {
       const result = await authService.verifyLoginOtp(otpSessionId, otp);
       login(result.user, result.tokens);
       setShowOTPModal(false);
-      router.push('/dashboard');
+      const redirectPath = getDefaultRedirectPath(result.user);
+      router.push(redirectPath);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'OTP verification failed. Please try again.';

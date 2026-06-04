@@ -121,6 +121,7 @@ public class DataSeeder implements CommandLineRunner {
                             "VAULT_READ", "ALARM_VIEW");
                     case VIEWER -> filterPerms(all, "VAULT_READ", "DEVICE_READ", "ALARM_VIEW",
                             "REPORT_EXPORT", "AUDIT_VIEW");
+                    case VIEWER_CCTV -> filterPerms(all, "LIVESTREAM_VIEW");
                 });
                 return roleRepository.save(role);
             });

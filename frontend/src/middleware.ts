@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/login', '/forgot-password'];
+const publicPaths = ['/login', '/forgot-password', '/pin-gate'];
 const landingPath = '/';
+const pinGatePath = '/pin-gate';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,6 +18,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check PIN gate verification
+  const pinVerified = request.cookies.get('pansis_pin_verified')?.value === 'true';
+  
+  // If not on PIN gate page and PIN not verified, redirect to PIN gate
+  if (!pinVerified && pathname !== pinGatePath) {
+    return NextResponse.redirect(new URL(pinGatePath, request.url));
+  }
+
   // Check for auth token in cookies (for SSR) or rely on client-side check
   const token = request.cookies.get('pansis_access_token')?.value;
 
@@ -25,10 +34,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow public paths (login, forgot-password)
+  // Allow public paths (login, forgot-password, pin-gate)
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     // If already authenticated, redirect to dashboard
-    if (token) {
+    if (token && pathname !== pinGatePath) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return NextResponse.next();

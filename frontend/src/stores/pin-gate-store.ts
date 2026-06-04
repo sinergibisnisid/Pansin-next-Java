@@ -20,8 +20,12 @@ export const usePinGateStore = create<PinGateState>()((set) => ({
     if (typeof window !== 'undefined') {
       if (verified) {
         sessionStorage.setItem('pansis_pin_verified', 'true');
+        // Set cookie for middleware
+        document.cookie = 'pansis_pin_verified=true; path=/; SameSite=Strict';
       } else {
         sessionStorage.removeItem('pansis_pin_verified');
+        // Remove cookie
+        document.cookie = 'pansis_pin_verified=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
     }
     set({ isVerified: verified });

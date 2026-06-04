@@ -5,11 +5,7 @@ import { motion } from 'framer-motion';
 import {
   Shield,
   LogIn,
-  Monitor,
   BarChart3,
-  Building2,
-  Filter,
-  Video,
   Eye,
   EyeOff,
   Lock,
@@ -36,7 +32,6 @@ import { authService } from '@/services';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { LiveStreamGrid } from './components/live-stream-grid';
 import { BranchUtilizationChart } from './components/branch-utilization-chart';
 import { OTPModal } from '@/components/shared/otp-modal';
 
@@ -49,7 +44,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LandingPage() {
-  const [activeTab, setActiveTab] = useState<'livestream' | 'utilization'>('livestream');
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   return (
@@ -68,32 +62,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="hidden sm:flex items-center gap-1 rounded-lg border border-border/60 bg-muted/50 p-1">
-            <button
-              onClick={() => setActiveTab('livestream')}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-all',
-                activeTab === 'livestream'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Monitor className="h-3.5 w-3.5" />
-              Live Stream
-            </button>
-            <button
-              onClick={() => setActiveTab('utilization')}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-4 py-1.5 text-xs font-medium transition-all',
-                activeTab === 'utilization'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              Utilisasi Cabang
-            </button>
+          {/* Page Title */}
+          <div className="hidden sm:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <BarChart3 className="h-4 w-4" />
+            Utilisasi Cabang
           </div>
 
           {/* Login Button */}
@@ -106,39 +78,11 @@ export default function LandingPage() {
             Login
           </Button>
         </div>
-
-        {/* Mobile Tab */}
-        <div className="sm:hidden flex items-center gap-1 px-4 pb-3">
-          <button
-            onClick={() => setActiveTab('livestream')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-all',
-              activeTab === 'livestream'
-                ? 'bg-primary/10 text-primary border border-primary/30'
-                : 'text-muted-foreground'
-            )}
-          >
-            <Monitor className="h-3.5 w-3.5" />
-            Live Stream
-          </button>
-          <button
-            onClick={() => setActiveTab('utilization')}
-            className={cn(
-              'flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-all',
-              activeTab === 'utilization'
-                ? 'bg-primary/10 text-primary border border-primary/30'
-                : 'text-muted-foreground'
-            )}
-          >
-            <BarChart3 className="h-3.5 w-3.5" />
-            Utilisasi
-          </button>
-        </div>
       </nav>
 
       {/* Main Content */}
       <main className="flex-1 p-4">
-        {activeTab === 'livestream' ? <LiveStreamGrid /> : <BranchUtilizationChart />}
+        <BranchUtilizationChart />
       </main>
 
       {/* Footer */}

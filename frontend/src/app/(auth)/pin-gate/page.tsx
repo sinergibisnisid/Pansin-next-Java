@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Shield, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { usePinGateStore } from '@/stores';
+import { pinGateService } from '@/services';
 
 export default function PinGatePage() {
   const router = useRouter();
@@ -72,11 +73,9 @@ export default function PinGatePage() {
     setError('');
 
     try {
-      // TODO: Verify TOTP with backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const isValid = await pinGateService.verifyPin(code);
       
-      // Mock verification
-      if (code === '123456') {
+      if (isValid) {
         setVerified(true);
         router.push('/');
       } else {

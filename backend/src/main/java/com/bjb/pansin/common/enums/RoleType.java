@@ -7,5 +7,6 @@ public enum RoleType {
     OPERATOR,
     SECURITY,
     MAINTENANCE,
-    VIEWER
+    VIEWER,
+    VIEWER_CCTV
 }

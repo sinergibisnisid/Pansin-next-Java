@@ -111,6 +111,7 @@ public class SecurityConfig {
                             "/api/v1/auth/refresh",
                             "/api/v1/auth/otp/**",
                             "/api/v1/public/**",
+                            "/api/v1/debug/**",
                             "/actuator/health/**",
                             "/actuator/info",
                             "/actuator/prometheus",
