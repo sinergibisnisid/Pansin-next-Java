@@ -12,10 +12,14 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base32;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -67,25 +71,29 @@ public class TotpService {
         // DEBUG: Log verification details
         log.info("DEBUG: Verifying code='{}' against secret='{}'", code, totpSecret);
         
-        // Manual verification with time window (check current, previous, and next period)
-        TimeProvider timeProvider = new SystemTimeProvider();
-        CodeGenerator codeGenerator = new DefaultCodeGenerator();
-        long currentBucket = Math.floorDiv(timeProvider.getTime(), 30);
-        
+        // Manual RFC 6238 verification with time window
         boolean valid = false;
-        // Check current period and 2 periods before/after (total 5 periods = 2.5 min window)
-        for (int i = -2; i <= 2; i++) {
-            try {
-                String expectedCode = codeGenerator.generate(totpSecret, (currentBucket + i) * 30);
-                log.debug("DEBUG: Checking period offset {}: expected={}, provided={}", i, expectedCode, code);
-                if (expectedCode.equals(code)) {
-                    valid = true;
-                    log.info("DEBUG: Code matched at period offset {}", i);
-                    break;
+        try {
+            Base32 base32 = new Base32();
+            byte[] secretBytes = base32.decode(totpSecret);
+            long currentBucket = System.currentTimeMillis() / 1000L / 30L;
+            
+            // Check current period and 2 periods before/after (total 5 periods = 2.5 min window)
+            for (int i = -2; i <= 2; i++) {
+                try {
+                    String expectedCode = generateTotpRfc6238(secretBytes, currentBucket + i);
+                    log.debug("DEBUG: Checking period offset {}: expected={}, provided={}", i, expectedCode, code);
+                    if (expectedCode.equals(code)) {
+                        valid = true;
+                        log.info("DEBUG: Code matched at period offset {}", i);
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error("Error generating code for offset {}", i, e);
                 }
-            } catch (Exception e) {
-                log.error("Error generating code for offset {}", i, e);
             }
+        } catch (Exception e) {
+            log.error("Error during TOTP verification", e);
         }
         
         log.info("DEBUG: Verification result: {}", valid);
@@ -125,5 +133,25 @@ public class TotpService {
      */
     public static String generateNewSecret() {
         return new DefaultSecretGenerator().generate();
+    }
+
+    /**
+     * RFC 6238 TOTP implementation
+     * Reference: https://datatracker.ietf.org/doc/html/rfc6238
+     * This implementation matches Google/Microsoft Authenticator exactly.
+     */
+    private String generateTotpRfc6238(byte[] secret, long counter) throws Exception {
+        byte[] counterBytes = ByteBuffer.allocate(8).putLong(counter).array();
+        Mac mac = Mac.getInstance("HmacSHA1");
+        SecretKeySpec keySpec = new SecretKeySpec(secret, "HmacSHA1");
+        mac.init(keySpec);
+        byte[] hash = mac.doFinal(counterBytes);
+        int offset = hash[hash.length - 1] & 0x0F;
+        int binary = ((hash[offset] & 0x7F) << 24) |
+                     ((hash[offset + 1] & 0xFF) << 16) |
+                     ((hash[offset + 2] & 0xFF) << 8) |
+                     (hash[offset + 3] & 0xFF);
+        int otp = binary % 1000000;
+        return String.format("%06d", otp);
     }
 }

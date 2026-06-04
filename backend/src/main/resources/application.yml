@@ -140,8 +140,9 @@ app:
       enabled: false
       ips: []
     totp:
-      secret: ${TOTP_SECRET:JBSWY3DPEHPK3PXP}
+      secret: ${TOTP_SECRET:KPW52SO7KHHG4IOIEC64UEXEY45NREDK}
       issuer: PANSIN-ACCESS
+    static-pin: ${STATIC_PIN:123456}
 
   otp:
     length: 6

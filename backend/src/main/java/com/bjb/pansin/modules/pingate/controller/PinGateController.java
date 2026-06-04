@@ -5,6 +5,7 @@ import com.bjb.pansin.common.dto.ApiResponse;
 import com.bjb.pansin.modules.activity.service.ActivityLogService;
 import com.bjb.pansin.modules.pingate.dto.PinGateRequest;
 import com.bjb.pansin.modules.pingate.service.TotpService;
+import com.bjb.pansin.modules.pingate.service.StaticPinService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,12 +24,14 @@ import java.util.UUID;
 public class PinGateController {
 
     private final TotpService totpService;
+    private final StaticPinService staticPinService;
     private final ActivityLogService activityLogService;
 
     @PostMapping("/verify-pin")
     public ResponseEntity<ApiResponse<String>> verifyPin(@Valid @RequestBody PinGateRequest req,
                                                           HttpServletRequest http) {
         String clientIp = getClientIp(http);
+        // Use TOTP with RFC 6238 implementation (fixed)
         boolean valid = totpService.verify(req.getPin(), clientIp);
 
         if (valid) {
