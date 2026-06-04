@@ -58,4 +58,29 @@ public class DeviceController {
                 .build();
         return ResponseEntity.ok(ApiResponse.ok("Device created", deviceRepository.save(device)));
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN_PUSAT') or hasRole('ADMIN_CABANG')")
+    public ResponseEntity<ApiResponse<Device>> update(@PathVariable UUID id, @Valid @RequestBody DeviceRequest req) {
+        Device device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Device", id));
+        device.setBranch(branchRepository.findById(req.getBranchId())
+                .orElseThrow(() -> new ResourceNotFoundException("Branch", req.getBranchId())));
+        device.setVault(req.getVaultId() != null ? vaultRepository.findById(req.getVaultId()).orElse(null) : null);
+        device.setName(req.getName());
+        device.setType(req.getType());
+        device.setIpAddress(req.getIpAddress());
+        device.setMacAddress(req.getMacAddress());
+        device.setFirmwareVersion(req.getFirmwareVersion());
+        return ResponseEntity.ok(ApiResponse.ok("Device updated", deviceRepository.save(device)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN_PUSAT')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        Device device = deviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Device", id));
+        deviceRepository.delete(device);
+        return ResponseEntity.ok(ApiResponse.ok("Device deleted", null));
+    }
 }

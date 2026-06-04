@@ -72,4 +72,13 @@ public class BranchController {
         if (req.getTimezone() != null) branch.setTimezone(req.getTimezone());
         return ResponseEntity.ok(ApiResponse.ok("Branch updated", branchRepository.save(branch)));
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        Branch branch = branchRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Branch", id));
+        branchRepository.delete(branch);
+        return ResponseEntity.ok(ApiResponse.ok("Branch deleted", null));
+    }
 }

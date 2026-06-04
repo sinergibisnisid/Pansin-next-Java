@@ -30,6 +30,14 @@ public class OrganizationController {
         return ResponseEntity.ok(ApiResponse.ok(repository.findAll()));
     }
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Organization>> getById(@PathVariable UUID id) {
+        Organization org = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization", id));
+        return ResponseEntity.ok(ApiResponse.ok("Organization retrieved", org));
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Organization>> create(@Valid @RequestBody OrganizationRequest req) {
@@ -53,5 +61,14 @@ public class OrganizationController {
         org.setPhone(req.getPhone());
         org.setEmail(req.getEmail());
         return ResponseEntity.ok(ApiResponse.ok("Organization updated", repository.save(org)));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        Organization org = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Organization", id));
+        repository.delete(org);
+        return ResponseEntity.ok(ApiResponse.ok("Organization deleted", null));
     }
 }
