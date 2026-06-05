@@ -131,7 +131,11 @@ public class ReportGenerator {
             // Table
             PdfPTable table = new PdfPTable(5);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{2f, 2f, 2f, 3f, 1.5f});
+            try {
+                table.setWidths(new float[]{2f, 2f, 2f, 3f, 1.5f});
+            } catch (Exception ignored) {
+                // Use default widths if setWidths fails
+            }
             
             Font headerFont = new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
             Color headerBg = new Color(0, 51, 102);

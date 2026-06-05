@@ -137,9 +137,9 @@ export default function ReportsPage() {
       else if (type === 'excel') blob = await reportService.exportExcel(params);
       else blob = await reportService.exportPDF(params);
       downloadFile(blob, getFilename(type === 'excel' ? 'xlsx' : type));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export failed:', error);
-      alert('Export failed');
+      alert(`Export failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
     } finally {
       setIsExporting(false);
     }
