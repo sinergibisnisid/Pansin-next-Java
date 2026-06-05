@@ -73,8 +73,12 @@ export default function MaintenancePage() {
   };
 
   useEffect(() => {
-    // Temporarily disabled - backend endpoint not ready
-    // maintenanceService.getAll().then(data => setSchedules(Array.isArray(data) ? data : [])).catch(console.error);
+    maintenanceService.getAll()
+      .then(data => setSchedules(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Failed to fetch maintenance schedules:', err);
+        setSchedules([]);
+      });
   }, []);
 
   useEffect(() => {

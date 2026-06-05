@@ -17,4 +17,9 @@ export const maintenanceService = {
     const response = await apiClient.get('/maintenance');
     return Array.isArray(response.data.data) ? response.data.data : [];
   },
+
+  updateStatus: async (id: string, status: string) => {
+    const response = await apiClient.patch(`/maintenance/${id}/status`, { status });
+    return response.data.data;
+  },
 };
