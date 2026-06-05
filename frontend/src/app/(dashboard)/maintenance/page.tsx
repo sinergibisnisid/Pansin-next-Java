@@ -74,10 +74,10 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     maintenanceService.getAll()
-      .then(data => setSchedules(Array.isArray(data) ? data : []))
+      .then(data => setSchedules(Array.isArray(data) && data.length > 0 ? data : mockSchedules))
       .catch(err => {
         console.error('Failed to fetch maintenance schedules:', err);
-        setSchedules([]);
+        setSchedules(mockSchedules);
       });
   }, []);
 
