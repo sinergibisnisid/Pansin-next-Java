@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Building2, Search, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import type { Organization } from '@/types';
+import { organizationService } from '@/services';
 
 const mockOrganizations: Organization[] = [
   { id: '1', name: 'Kantor Pusat Bank BJB', code: 'HQ-001', type: 'headquarters', address: 'Jl. Naripan No.12-14', city: 'Bandung', province: 'Jawa Barat', phone: '022-4234868', email: 'pusat@bankbjb.co.id', status: 'active', totalVaults: 2, totalDevices: 16, createdAt: '2024-01-01', updatedAt: '2024-03-15' },
@@ -82,8 +85,45 @@ const columns: ColumnDef<Organization>[] = [
 
 export default function OrganizationPage() {
   const [search, setSearch] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [organizations, setOrganizations] = useState(mockOrganizations);
+  const [formData, setFormData] = useState({ name: '', code: '', type: 'branch', city: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filtered = mockOrganizations.filter(
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.code) return;
+    setIsSubmitting(true);
+    try {
+      const newOrg = await organizationService.create(formData);
+      setOrganizations([...organizations, newOrg]);
+      setIsAddDialogOpen(false);
+      setFormData({ name: '', code: '', type: 'branch', city: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to create organization. Code may already exist.');
+      console.error('Failed to create organization:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      setIsLoading(true);
+      try {
+        const data = await organizationService.getAll();
+        setOrganizations(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch organizations:', error);
+        setOrganizations([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrganizations();
+  }, []);
+
+  const filtered = organizations.filter(
     (org) =>
       org.name.toLowerCase().includes(search.toLowerCase()) ||
       org.code.toLowerCase().includes(search.toLowerCase()) ||
@@ -100,7 +140,11 @@ export default function OrganizationPage() {
             Manage headquarters and branch offices
           </p>
         </div>
-        <Button size="sm" className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400">
+        <Button 
+          size="sm" 
+          className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Branch</span>
         </Button>
@@ -114,15 +158,21 @@ export default function OrganizationPage() {
       >
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{mockOrganizations.length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">
+            {isLoading ? '...' : (organizations.length || 0)}
+          </p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Active</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{mockOrganizations.filter((o) => o.status === 'active').length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">
+            {isLoading ? '...' : (organizations.filter((o) => o.status === 'active').length || 0)}
+          </p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Vaults</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{mockOrganizations.reduce((sum, o) => sum + o.totalVaults, 0)}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">
+            {isLoading ? '...' : (organizations.reduce((sum, o) => sum + (o.totalVaults || 0), 0))}
+          </p>
         </div>
       </motion.div>
 
@@ -139,6 +189,47 @@ export default function OrganizationPage() {
 
       {/* Table */}
       <DataTable columns={columns} data={filtered} searchKey="name" searchPlaceholder="Filter by name..." />
+
+      {/* Add Branch Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Branch</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Branch Name</Label>
+              <Input 
+                placeholder="Enter branch name" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Branch Code</Label>
+              <Input 
+                placeholder="Enter branch code" 
+                value={formData.code}
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>City</Label>
+              <Input 
+                placeholder="Enter city" 
+                value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Branch'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

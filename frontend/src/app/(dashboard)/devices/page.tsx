@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Cpu, Wifi, WifiOff, Signal, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { StatCard } from '@/components/cards/stat-card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Progress } from '@/components/ui/progress';
 import type { Device } from '@/types';
+import { deviceService } from '@/services';
 
 const mockDevices: Device[] = [
   { id: 'd-001', name: 'Controller Vault BDG-01', type: 'controller', serialNumber: 'CTR-2024-001', model: 'PanCtrl v3', firmware: '3.2.1', ipAddress: '192.168.1.101', macAddress: 'AA:BB:CC:DD:01:01', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', status: 'online', signalQuality: 95, lastHeartbeat: '2024-03-15T09:30:00Z', mqttTopic: 'vault/bdg01/controller', installedAt: '2024-01-15', lastMaintenance: '2024-03-01', createdAt: '2024-01-15', updatedAt: '2024-03-15' },
@@ -82,7 +86,30 @@ const columns: ColumnDef<Device>[] = [
 ];
 
 export default function DevicesPage() {
-  const [devices] = useState(mockDevices);
+  const [devices, setDevices] = useState(mockDevices);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', serialNumber: '', type: 'controller', ipAddress: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.serialNumber) return;
+    setIsSubmitting(true);
+    try {
+      const newDevice = await deviceService.create(formData);
+      setDevices([...devices, newDevice]);
+      setIsAddDialogOpen(false);
+      setFormData({ name: '', serialNumber: '', type: 'controller', ipAddress: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to create device');
+      console.error('Failed to create device:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    deviceService.getAll().then(data => setDevices(Array.isArray(data) ? data : [])).catch(console.error);
+  }, []);
 
   const onlineCount = devices.filter((d) => d.status === 'online').length;
   const offlineCount = devices.filter((d) => d.status === 'offline').length;
@@ -98,7 +125,11 @@ export default function DevicesPage() {
             Monitor and manage all connected devices
           </p>
         </div>
-        <Button size="sm" className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400">
+        <Button 
+          size="sm" 
+          className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Device</span>
         </Button>
@@ -119,6 +150,35 @@ export default function DevicesPage() {
         searchKey="name"
         searchPlaceholder="Search devices..."
       />
+
+      {/* Add Device Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Device</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Device Name</Label>
+              <Input placeholder="Enter device name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Serial Number</Label>
+              <Input placeholder="Enter serial number" value={formData.serialNumber} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>IP Address</Label>
+              <Input placeholder="Enter IP address" value={formData.ipAddress} onChange={(e) => setFormData({...formData, ipAddress: e.target.value})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Device'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

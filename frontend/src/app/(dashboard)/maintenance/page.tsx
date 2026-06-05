@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Wrench,
@@ -12,8 +12,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { MaintenanceSchedule } from '@/types';
+import { maintenanceService } from '@/services';
 
 const mockSchedules: MaintenanceSchedule[] = [
   { id: 'm-001', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', vaultName: 'Vault Utama', type: 'inspection', status: 'completed', scheduledDate: '2024-03-10T09:00:00Z', completedDate: '2024-03-10T11:30:00Z', assignedTo: 'Teknisi A', notes: 'Inspeksi rutin bulanan', createdAt: '2024-03-01' },
@@ -44,8 +48,32 @@ const typeColors: Record<string, string> = {
 
 export default function MaintenancePage() {
   const [filter, setFilter] = useState<string>('all');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [schedules, setSchedules] = useState(mockSchedules);
+  const [formData, setFormData] = useState({ branchId: '', type: 'cleaning', scheduledDate: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filtered = filter === 'all' ? mockSchedules : mockSchedules.filter((s) => s.status === filter);
+  const handleSubmit = async () => {
+    if (!formData.branchId || !formData.scheduledDate) return;
+    setIsSubmitting(true);
+    try {
+      const newSchedule = await maintenanceService.create(formData);
+      setSchedules([...schedules, newSchedule]);
+      setIsAddDialogOpen(false);
+      setFormData({ branchId: '', type: 'cleaning', scheduledDate: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to create maintenance');
+      console.error('Failed to create maintenance:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    maintenanceService.getAll().then(data => setSchedules(Array.isArray(data) ? data : [])).catch(console.error);
+  }, []);
+
+  const filtered = filter === 'all' ? schedules : schedules.filter((s) => s.status === filter);
 
   const counts = {
     all: mockSchedules.length,
@@ -65,7 +93,10 @@ export default function MaintenancePage() {
             Schedule and track vault maintenance activities
           </p>
         </div>
-        <Button className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400">
+        <Button 
+          className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <Plus className="h-4 w-4" />
           Schedule Maintenance
         </Button>
@@ -151,6 +182,35 @@ export default function MaintenancePage() {
           );
         })}
       </div>
+
+      {/* Add Maintenance Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule Maintenance</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Branch</Label>
+              <Input placeholder="Select branch" value={formData.branchId} onChange={(e) => setFormData({...formData, branchId: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Maintenance Type</Label>
+              <Input placeholder="Select type" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Scheduled Date</Label>
+              <Input type="date" value={formData.scheduledDate} onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Scheduling...' : 'Schedule'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default function MonitoringPage() {
     const fetchVaults = async () => {
       try {
         const data = await monitoringService.getVaults();
-        setVaults(data);
+        setVaults(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch vaults:', error);
       } finally {
@@ -53,7 +53,7 @@ export default function MonitoringPage() {
     setIsLoading(true);
     try {
       const data = await monitoringService.getVaults();
-      setVaults(data);
+      setVaults(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {

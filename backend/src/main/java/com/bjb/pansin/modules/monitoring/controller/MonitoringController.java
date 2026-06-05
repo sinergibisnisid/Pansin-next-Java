@@ -85,7 +85,7 @@ public class MonitoringController {
         map.put("description", log.getDescription() != null ? log.getDescription() : "");
         map.put("severity", "info");
         map.put("ipAddress", log.getIpAddress());
-        map.put("userId", log.getUserId() != null ? log.getUserId().toString() : null);
+        map.put("userId", log.getUser() != null && log.getUser().getId() != null ? log.getUser().getId().toString() : null);
         return map;
     }
 }

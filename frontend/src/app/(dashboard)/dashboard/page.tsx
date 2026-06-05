@@ -36,7 +36,7 @@ export default function DashboardPage() {
           monitoringService.getActivities(),
         ]);
         setStats(statsData);
-        setActivities(activitiesData.data);
+        setActivities(Array.isArray(activitiesData.data) ? activitiesData.data : []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {

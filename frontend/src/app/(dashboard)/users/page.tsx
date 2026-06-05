@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, UserPlus, Shield, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getInitials } from '@/lib/utils';
 import type { User } from '@/types';
+import { userService } from '@/services';
 
 const mockUsers: User[] = [
   { id: '1', username: 'admin', email: 'admin@bankbjb.co.id', fullName: 'Administrator', role: 'super_admin', permissions: [], branchId: 'hq-001', branchName: 'Kantor Pusat', status: 'active', lastLogin: '2024-03-15T09:00:00Z', createdAt: '2024-01-01', updatedAt: '2024-03-15' },
@@ -97,7 +101,35 @@ const columns: ColumnDef<User>[] = [
 ];
 
 export default function UsersPage() {
-  const [users] = useState(mockUsers);
+  const [users, setUsers] = useState(mockUsers);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', role: 'operator' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!formData.fullName || !formData.username || !formData.email || !formData.password) return;
+    setIsSubmitting(true);
+    try {
+      const newUser = await userService.create(formData);
+      setUsers([...users, newUser]);
+      setIsAddDialogOpen(false);
+      setFormData({ fullName: '', username: '', email: '', password: '', role: 'operator' });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to create user');
+      console.error('Failed to create user:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    userService.getAll()
+      .then(data => setUsers(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Failed to fetch users:', err);
+        setUsers([]);
+      });
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -109,7 +141,11 @@ export default function UsersPage() {
             Manage users, roles, and permissions
           </p>
         </div>
-        <Button size="sm" className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400">
+        <Button 
+          size="sm" 
+          className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400"
+          onClick={() => setIsAddDialogOpen(true)}
+        >
           <UserPlus className="h-4 w-4" />
           <span className="hidden sm:inline">Add User</span>
         </Button>
@@ -142,6 +178,57 @@ export default function UsersPage() {
         searchKey="fullName"
         searchPlaceholder="Search users..."
       />
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input 
+                placeholder="Enter full name" 
+                value={formData.fullName}
+                onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Username</Label>
+              <Input 
+                placeholder="Enter username" 
+                value={formData.username}
+                onChange={(e) => setFormData({...formData, username: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input 
+                type="email" 
+                placeholder="Enter email" 
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input 
+                type="password" 
+                placeholder="Enter password" 
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
