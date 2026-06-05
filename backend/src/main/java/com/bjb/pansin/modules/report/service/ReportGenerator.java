@@ -101,31 +101,71 @@ public class ReportGenerator {
     public byte[] generateAuditLogPdf(String category, String severity) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            Document document = new Document();
+            Document document = new Document(PageSize.A4.rotate()); // Landscape
             PdfWriter.getInstance(document, out);
             document.open();
             
-            // Simple header
-            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD);
-            Paragraph title = new Paragraph("PANSIN ACCESS SYSTEM - Audit Log Report", titleFont);
+            // Professional header
+            Font titleFont = new Font(Font.HELVETICA, 20, Font.BOLD, new Color(0, 51, 102));
+            Paragraph title = new Paragraph("PANSIN ACCESS", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
-            document.add(new Paragraph(" "));
             
-            // Simple metadata
-            document.add(new Paragraph("Generated: " + java.time.LocalDateTime.now()));
-            document.add(new Paragraph("Total Records: " + activityLogRepository.count()));
-            document.add(new Paragraph(" "));
+            Font subtitleFont = new Font(Font.HELVETICA, 14, Font.NORMAL, new Color(0, 102, 204));
+            Paragraph subtitle = new Paragraph("Audit Log Report", subtitleFont);
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            subtitle.setSpacingAfter(10f);
+            document.add(subtitle);
             
-            // Simple list (no table for now)
+            // Metadata section
+            Font metaFont = new Font(Font.HELVETICA, 9, Font.NORMAL, Color.DARK_GRAY);
+            document.add(new Paragraph("Generated: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss")), metaFont));
+            document.add(new Paragraph("Filter Category: " + (category != null && !category.equals("all") ? category : "All"), metaFont));
+            document.add(new Paragraph("Filter Severity: " + (severity != null && !severity.equals("all") ? severity : "All"), metaFont));
+            
             var logs = activityLogRepository.findAll();
+            long totalRecords = logs.stream().filter(l -> category == null || category.equals("all") || category.equals(l.getActivity())).count();
+            document.add(new Paragraph("Total Records: " + totalRecords, metaFont));
+            document.add(new Paragraph(" "));
+            
+            // Table header
+            PdfPTable table = new PdfPTable(5);
+            table.setWidthPercentage(100);
+            table.setSpacingBefore(10f);
+            
+            Font headerFont = new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
+            for (String header : new String[]{"Timestamp", "User", "Action", "Details", "IP Address"}) {
+                PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
+                cell.setBackgroundColor(new Color(0, 51, 102));
+                cell.setPadding(5);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                table.addCell(cell);
+            }
+            
+            // Table rows
+            Font cellFont = new Font(Font.HELVETICA, 8);
+            int rowIndex = 0;
             for (ActivityLog log : logs) {
                 if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
-                document.add(new Paragraph(String.format("[%s] %s - %s", 
-                    log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, 16) : "-",
-                    log.getUser() != null ? log.getUser().getFullName() : "System",
-                    log.getActivity())));
+                
+                Color rowBg = (rowIndex++ % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
+                
+                PdfPCell[] cells = {
+                    new PdfPCell(new Phrase(log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, 16) : "-", cellFont)),
+                    new PdfPCell(new Phrase(log.getUser() != null ? log.getUser().getFullName() : "System", cellFont)),
+                    new PdfPCell(new Phrase(log.getActivity(), cellFont)),
+                    new PdfPCell(new Phrase(log.getDescription() != null ? log.getDescription().substring(0, Math.min(40, log.getDescription().length())) : "-", cellFont)),
+                    new PdfPCell(new Phrase(log.getIpAddress() != null ? log.getIpAddress() : "-", cellFont))
+                };
+                
+                for (PdfPCell cell : cells) {
+                    cell.setBackgroundColor(rowBg);
+                    cell.setPadding(4);
+                    table.addCell(cell);
+                }
             }
+            
+            document.add(table);
             
             document.close();
             return out.toByteArray();
