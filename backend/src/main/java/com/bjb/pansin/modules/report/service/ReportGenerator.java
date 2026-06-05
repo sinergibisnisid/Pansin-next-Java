@@ -126,39 +126,6 @@ public class ReportGenerator {
             throw new RuntimeException("PDF generation failed: " + ex.getMessage(), ex);
         }
     }
-            
-            // Table rows
-            Font cellFont = new Font(Font.HELVETICA, 8);
-            int rowIndex = 0;
-            for (ActivityLog log : logs) {
-                if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
-                
-                Color rowBg = (rowIndex++ % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
-                
-                PdfPCell[] cells = {
-                    new PdfPCell(new Phrase(log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, Math.min(16, log.getCreatedAt().toString().length())) : "-", cellFont)),
-                    new PdfPCell(new Phrase(log.getUser() != null && log.getUser().getFullName() != null ? log.getUser().getFullName() : "System", cellFont)),
-                    new PdfPCell(new Phrase(log.getActivity() != null ? log.getActivity() : "-", cellFont)),
-                    new PdfPCell(new Phrase(log.getDescription() != null && log.getDescription().length() > 0 ? log.getDescription().substring(0, Math.min(40, log.getDescription().length())) : "-", cellFont)),
-                    new PdfPCell(new Phrase(log.getIpAddress() != null ? log.getIpAddress() : "-", cellFont))
-                };
-                
-                for (PdfPCell cell : cells) {
-                    cell.setBackgroundColor(rowBg);
-                    cell.setPadding(4);
-                    table.addCell(cell);
-                }
-            }
-            
-            document.add(table);
-            
-            document.close();
-            return out.toByteArray();
-        } catch (Exception ex) {
-            log.error("PDF generation failed", ex);
-            throw new RuntimeException("PDF generation failed: " + ex.getMessage(), ex);
-        }
-    }
 
     public byte[] generateAuditLogExcel(String category, String severity) {
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
