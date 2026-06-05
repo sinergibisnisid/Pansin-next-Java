@@ -100,70 +100,39 @@ public class ReportGenerator {
 
     public byte[] generateAuditLogPdf(String category, String severity) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try (Document document = new Document()) {
+        try {
+            Document document = new Document();
             PdfWriter.getInstance(document, out);
             document.open();
             
-            // Header
-            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, new Color(0, 51, 102));
-            Paragraph title = new Paragraph("PANSIN ACCESS SYSTEM", titleFont);
+            // Simple header
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD);
+            Paragraph title = new Paragraph("PANSIN ACCESS SYSTEM - Audit Log Report", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
-            
-            Font subtitleFont = new Font(Font.HELVETICA, 14, Font.BOLD, new Color(0, 102, 204));
-            Paragraph subtitle = new Paragraph("Audit Log Report", subtitleFont);
-            subtitle.setAlignment(Element.ALIGN_CENTER);
-            document.add(subtitle);
-            
             document.add(new Paragraph(" "));
             
-            // Metadata
-            Font metaFont = new Font(Font.HELVETICA, 10, Font.NORMAL, Color.DARK_GRAY);
-            document.add(new Paragraph("Generated: " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm:ss")), metaFont));
-            if (category != null && !category.equals("all")) {
-                document.add(new Paragraph("Filter Category: " + category, metaFont));
-            }
+            // Simple metadata
+            document.add(new Paragraph("Generated: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph("Total Records: " + activityLogRepository.count()));
+            document.add(new Paragraph(" "));
+            
+            // Simple list (no table for now)
             var logs = activityLogRepository.findAll();
-            long count = logs.stream().filter(l -> category == null || category.equals("all") || category.equals(l.getActivity())).count();
-            document.add(new Paragraph("Total Records: " + count, metaFont));
-            document.add(new Paragraph(" "));
-            
-            // Table
-            PdfPTable table = new PdfPTable(5);
-            table.setWidthPercentage(100);
-            try {
-                table.setWidths(new float[]{2f, 2f, 2f, 3f, 1.5f});
-            } catch (Exception ignored) {
-                // Use default widths if setWidths fails
-            }
-            
-            Font headerFont = new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
-            Color headerBg = new Color(0, 51, 102);
-            String[] headers = {"Timestamp", "User", "Action", "Details", "IP Address"};
-            for (String header : headers) {
-                PdfPCell cell = new PdfPCell(new Phrase(header, headerFont));
-                cell.setBackgroundColor(headerBg);
-                cell.setPadding(5);
-                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(cell);
-            }
-            
-            Font cellFont = new Font(Font.HELVETICA, 8, Font.NORMAL, Color.BLACK);
             for (ActivityLog log : logs) {
                 if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
-                table.addCell(new Phrase(log.getCreatedAt() != null ? log.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")) : "-", cellFont));
-                table.addCell(new Phrase(log.getUser() != null ? log.getUser().getFullName() : "System", cellFont));
-                table.addCell(new Phrase(log.getActivity(), cellFont));
-                table.addCell(new Phrase(log.getDescription() != null ? log.getDescription().substring(0, Math.min(50, log.getDescription().length())) : "-", cellFont));
-                table.addCell(new Phrase(log.getIpAddress() != null ? log.getIpAddress() : "-", cellFont));
+                document.add(new Paragraph(String.format("[%s] %s - %s", 
+                    log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, 16) : "-",
+                    log.getUser() != null ? log.getUser().getFullName() : "System",
+                    log.getActivity())));
             }
             
-            document.add(table);
+            document.close();
+            return out.toByteArray();
         } catch (Exception ex) {
             log.error("PDF generation failed", ex);
-            throw new RuntimeException(ex);
+            throw new RuntimeException("PDF generation failed: " + ex.getMessage(), ex);
         }
-        return out.toByteArray();
     }
 
     public byte[] generateAuditLogExcel(String category, String severity) {
