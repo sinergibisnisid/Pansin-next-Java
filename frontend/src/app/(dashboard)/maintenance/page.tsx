@@ -15,9 +15,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { MaintenanceSchedule } from '@/types';
-import { maintenanceService } from '@/services';
+import { maintenanceService, organizationService } from '@/services';
 
 const mockSchedules: MaintenanceSchedule[] = [
   { id: 'm-001', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', vaultName: 'Vault Utama', type: 'inspection', status: 'completed', scheduledDate: '2024-03-10T09:00:00Z', completedDate: '2024-03-10T11:30:00Z', assignedTo: 'Teknisi A', notes: 'Inspeksi rutin bulanan', createdAt: '2024-03-01' },
@@ -52,6 +53,8 @@ export default function MaintenancePage() {
   const [schedules, setSchedules] = useState(mockSchedules);
   const [formData, setFormData] = useState({ branchId: '', type: 'cleaning', scheduledDate: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [isBranchesLoading, setIsBranchesLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (!formData.branchId || !formData.scheduledDate) return;
@@ -72,6 +75,21 @@ export default function MaintenancePage() {
   useEffect(() => {
     // Temporarily disabled - backend endpoint not ready
     // maintenanceService.getAll().then(data => setSchedules(Array.isArray(data) ? data : [])).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      setIsBranchesLoading(true);
+      try {
+        const orgs = await organizationService.getAll();
+        setBranches(Array.isArray(orgs) ? orgs.sort((a, b) => a.name.localeCompare(b.name)) : []);
+      } catch (error) {
+        console.error('Failed to load branches:', error);
+      } finally {
+        setIsBranchesLoading(false);
+      }
+    };
+    fetchBranches();
   }, []);
 
   const filtered = filter === 'all' ? schedules : schedules.filter((s) => s.status === filter);
@@ -124,7 +142,7 @@ export default function MaintenancePage() {
       {/* Timeline */}
       <div className="space-y-3">
         {filtered.map((schedule, index) => {
-          const config = statusConfig[schedule.status];
+          const config = statusConfig[schedule.status] || statusConfig.scheduled;
           const StatusIcon = config.icon;
 
           return (
@@ -193,7 +211,24 @@ export default function MaintenancePage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Branch</Label>
-              <Input placeholder="Select branch" value={formData.branchId} onChange={(e) => setFormData({...formData, branchId: e.target.value})} />
+              <Select 
+                value={formData.branchId} 
+                onValueChange={(value) => setFormData({...formData, branchId: value})}
+                disabled={isBranchesLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isBranchesLoading ? "Loading branches..." : "Select branch"}>
+                    {formData.branchId && branches.find(b => b.id === formData.branchId)?.name || "Select branch"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Maintenance Type</Label>
