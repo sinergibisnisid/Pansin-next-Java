@@ -63,6 +63,36 @@ public class ReportController {
                 .body(body);
     }
 
+    @GetMapping("/export/csv")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> exportCsv(@RequestParam(required = false) String category, @RequestParam(required = false) String severity) {
+        byte[] body = generator.generateAuditLogCsv(category, severity);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-log.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(body);
+    }
+
+    @GetMapping("/export/excel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> exportExcel(@RequestParam(required = false) String category, @RequestParam(required = false) String severity) {
+        byte[] body = generator.generateAuditLogExcel(category, severity);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-log.xlsx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(body);
+    }
+
+    @GetMapping("/export/pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> exportPdf(@RequestParam(required = false) String category, @RequestParam(required = false) String severity) {
+        byte[] body = generator.generateAuditLogPdf(category, severity);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"audit-log.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(body);
+    }
+
     // Async report job
     @PostMapping
     @PreAuthorize("hasAuthority('REPORT_EXPORT') or hasRole('SUPER_ADMIN') or hasRole('ADMIN_PUSAT')")

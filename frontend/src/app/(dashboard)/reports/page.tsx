@@ -15,6 +15,7 @@ import {
 import { type ColumnDef } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import type { AuditLog } from '@/types';
+import { reportService } from '@/services';
 
 const mockAuditLogs: AuditLog[] = [
   { id: 'log-001', timestamp: '2024-03-15T09:20:00Z', userId: 'u-001', userName: 'Administrator', branchId: 'hq-001', branchName: 'Kantor Pusat', action: 'User Login', category: 'auth', details: 'Login successful from IP 192.168.1.100', ipAddress: '192.168.1.100', severity: 'info' },
@@ -108,6 +109,41 @@ const columns: ColumnDef<AuditLog>[] = [
 export default function ReportsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [isExporting, setIsExporting] = useState(false);
+
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const getFilename = (type: string) => {
+    const date = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '').replace('T', '-');
+    return `audit-log-${date}.${type}`;
+  };
+
+  const handleExport = async (type: 'csv' | 'excel' | 'pdf') => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const params = { category: categoryFilter, severity: severityFilter };
+      let blob;
+      if (type === 'csv') blob = await reportService.exportCSV(params);
+      else if (type === 'excel') blob = await reportService.exportExcel(params);
+      else blob = await reportService.exportPDF(params);
+      downloadFile(blob, getFilename(type === 'excel' ? 'xlsx' : type));
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const filteredLogs = mockAuditLogs.filter((log) => {
     const matchesCategory = categoryFilter === 'all' || log.category === categoryFilter;
@@ -126,17 +162,17 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleExport('pdf')} disabled={isExporting}>
             <Download className="h-3.5 w-3.5" />
-            PDF
+            {isExporting ? 'Exporting...' : 'PDF'}
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleExport('excel')} disabled={isExporting}>
             <Download className="h-3.5 w-3.5" />
-            Excel
+            {isExporting ? 'Exporting...' : 'Excel'}
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleExport('csv')} disabled={isExporting}>
             <Download className="h-3.5 w-3.5" />
-            CSV
+            {isExporting ? 'Exporting...' : 'CSV'}
           </Button>
         </div>
       </div>

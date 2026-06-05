@@ -5,4 +5,5 @@ export { userService } from './user-service';
 export { organizationService } from './organization-service';
 export { deviceService } from './device-service';
 export { maintenanceService } from './maintenance-service';
+export { reportService } from './report-service';
 export { default as apiClient } from './api-client';

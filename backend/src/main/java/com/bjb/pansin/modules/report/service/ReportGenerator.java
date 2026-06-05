@@ -2,6 +2,8 @@ package com.bjb.pansin.modules.report.service;
 
 import com.bjb.pansin.modules.vault.entity.VaultAccessLog;
 import com.bjb.pansin.modules.vault.repository.VaultAccessLogRepository;
+import com.bjb.pansin.modules.activity.entity.ActivityLog;
+import com.bjb.pansin.modules.activity.repository.ActivityLogRepository;
 import com.lowagie.text.Document;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
@@ -23,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 public class ReportGenerator {
 
     private final VaultAccessLogRepository accessLogRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     public byte[] generateAccessLogPdf() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -84,6 +87,88 @@ public class ReportGenerator {
                         log.getAction(),
                         log.getMethod() != null ? log.getMethod() : "-",
                         log.getSourceIp() != null ? log.getSourceIp() : "-"));
+            }
+        } catch (Exception ex) {
+            log.error("CSV generation failed", ex);
+            throw new RuntimeException(ex);
+        }
+        return out.toByteArray();
+    }
+
+    public byte[] generateAuditLogPdf(String category, String severity) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (Document document = new Document()) {
+            PdfWriter.getInstance(document, out);
+            document.open();
+            document.add(new Paragraph("PANSIN ACCESS - Audit Log Report"));
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("Generated: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+            
+            var logs = activityLogRepository.findAll();
+            for (ActivityLog log : logs) {
+                if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
+                document.add(new Paragraph("[%s] %s - %s (IP: %s)".formatted(
+                        log.getCreatedAt(),
+                        log.getUser() != null ? log.getUser().getFullName() : "System",
+                        log.getActivity(),
+                        log.getIpAddress() != null ? log.getIpAddress() : "-")));
+            }
+        } catch (Exception ex) {
+            log.error("PDF generation failed", ex);
+            throw new RuntimeException(ex);
+        }
+        return out.toByteArray();
+    }
+
+    public byte[] generateAuditLogExcel(String category, String severity) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            XSSFSheet sheet = workbook.createSheet("Audit Log");
+            Row header = sheet.createRow(0);
+            header.createCell(0).setCellValue("Timestamp");
+            header.createCell(1).setCellValue("User");
+            header.createCell(2).setCellValue("Action");
+            header.createCell(3).setCellValue("Category");
+            header.createCell(4).setCellValue("Details");
+            header.createCell(5).setCellValue("Severity");
+            header.createCell(6).setCellValue("IP Address");
+            
+            var logs = activityLogRepository.findAll();
+            int rowNum = 1;
+            for (ActivityLog log : logs) {
+                if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(log.getCreatedAt() != null ? log.getCreatedAt().toString() : "-");
+                row.createCell(1).setCellValue(log.getUser() != null ? log.getUser().getFullName() : "-");
+                row.createCell(2).setCellValue(log.getActivity());
+                row.createCell(3).setCellValue(log.getActivity());
+                row.createCell(4).setCellValue(log.getDescription() != null ? log.getDescription() : "-");
+                row.createCell(5).setCellValue("info");
+                row.createCell(6).setCellValue(log.getIpAddress() != null ? log.getIpAddress() : "-");
+            }
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception ex) {
+            log.error("Excel generation failed", ex);
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public byte[] generateAuditLogCsv(String category, String severity) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (OutputStreamWriter writer = new OutputStreamWriter(out, StandardCharsets.UTF_8)) {
+            writer.write("Timestamp,User,Action,Category,Details,Severity,IP Address\n");
+            var logs = activityLogRepository.findAll();
+            for (ActivityLog log : logs) {
+                if (category != null && !category.equals("all") && !category.equals(log.getActivity())) continue;
+                writer.write("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"%n".formatted(
+                        log.getCreatedAt(),
+                        log.getUser() != null ? log.getUser().getFullName() : "-",
+                        log.getActivity(),
+                        log.getActivity(),
+                        log.getDescription() != null ? log.getDescription().replace("\"", "\"\"") : "-",
+                        "info",
+                        log.getIpAddress() != null ? log.getIpAddress() : "-"));
             }
         } catch (Exception ex) {
             log.error("CSV generation failed", ex);

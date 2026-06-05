@@ -70,7 +70,8 @@ export default function MaintenancePage() {
   };
 
   useEffect(() => {
-    maintenanceService.getAll().then(data => setSchedules(Array.isArray(data) ? data : [])).catch(console.error);
+    // Temporarily disabled - backend endpoint not ready
+    // maintenanceService.getAll().then(data => setSchedules(Array.isArray(data) ? data : [])).catch(console.error);
   }, []);
 
   const filtered = filter === 'all' ? schedules : schedules.filter((s) => s.status === filter);
