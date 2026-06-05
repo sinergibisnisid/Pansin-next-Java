@@ -151,10 +151,10 @@ public class ReportGenerator {
                 Color rowBg = (rowIndex++ % 2 == 0) ? Color.WHITE : new Color(245, 245, 245);
                 
                 PdfPCell[] cells = {
-                    new PdfPCell(new Phrase(log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, 16) : "-", cellFont)),
-                    new PdfPCell(new Phrase(log.getUser() != null ? log.getUser().getFullName() : "System", cellFont)),
-                    new PdfPCell(new Phrase(log.getActivity(), cellFont)),
-                    new PdfPCell(new Phrase(log.getDescription() != null ? log.getDescription().substring(0, Math.min(40, log.getDescription().length())) : "-", cellFont)),
+                    new PdfPCell(new Phrase(log.getCreatedAt() != null ? log.getCreatedAt().toString().substring(0, Math.min(16, log.getCreatedAt().toString().length())) : "-", cellFont)),
+                    new PdfPCell(new Phrase(log.getUser() != null && log.getUser().getFullName() != null ? log.getUser().getFullName() : "System", cellFont)),
+                    new PdfPCell(new Phrase(log.getActivity() != null ? log.getActivity() : "-", cellFont)),
+                    new PdfPCell(new Phrase(log.getDescription() != null && log.getDescription().length() > 0 ? log.getDescription().substring(0, Math.min(40, log.getDescription().length())) : "-", cellFont)),
                     new PdfPCell(new Phrase(log.getIpAddress() != null ? log.getIpAddress() : "-", cellFont))
                 };
                 
