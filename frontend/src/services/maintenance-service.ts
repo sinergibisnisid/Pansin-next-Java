@@ -14,7 +14,7 @@ export const maintenanceService = {
   },
 
   getAll: async () => {
-    const response = await apiClient.get('/maintenance');
+    const response = await apiClient.get('/maintenance/logs');
     return Array.isArray(response.data.data) ? response.data.data : [];
   },
 
