@@ -20,16 +20,7 @@ import { cn } from '@/lib/utils';
 import type { MaintenanceSchedule } from '@/types';
 import { maintenanceService, organizationService } from '@/services';
 
-const mockSchedules: MaintenanceSchedule[] = [
-  { id: 'm-001', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', vaultName: 'Vault Utama', type: 'inspection', status: 'completed', scheduledDate: '2024-03-10T09:00:00Z', completedDate: '2024-03-10T11:30:00Z', assignedTo: 'Teknisi A', notes: 'Inspeksi rutin bulanan', createdAt: '2024-03-01' },
-  { id: 'm-002', branchId: 'br-002', branchName: 'KCP Bandung Selatan', vaultId: 'v-002', vaultName: 'Vault Utama', type: 'cleaning', status: 'scheduled', scheduledDate: '2024-03-20T09:00:00Z', completedDate: null, assignedTo: 'Teknisi B', notes: 'Pembersihan sensor dan kamera', createdAt: '2024-03-05' },
-  { id: 'm-003', branchId: 'br-003', branchName: 'KCP Cimahi', vaultId: 'v-003', vaultName: 'Vault Utama', type: 'repair', status: 'in_progress', scheduledDate: '2024-03-15T08:00:00Z', completedDate: null, assignedTo: 'Teknisi C', notes: 'Perbaikan motion sensor yang error', createdAt: '2024-03-12' },
-  { id: 'm-004', branchId: 'br-005', branchName: 'KCP Sumedang', vaultId: 'v-005', vaultName: 'Vault Utama', type: 'lubrication', status: 'scheduled', scheduledDate: '2024-03-22T10:00:00Z', completedDate: null, assignedTo: 'Teknisi A', notes: 'Pelumasan mekanisme pintu vault', createdAt: '2024-03-08' },
-  { id: 'm-005', branchId: 'br-007', branchName: 'KCP Cianjur', vaultId: 'v-007', vaultName: 'Vault Utama', type: 'inspection', status: 'in_progress', scheduledDate: '2024-03-15T06:00:00Z', completedDate: null, assignedTo: 'Teknisi D', notes: 'Inspeksi dan kalibrasi sensor', createdAt: '2024-03-10' },
-  { id: 'm-006', branchId: 'br-004', branchName: 'KCP Garut', vaultId: 'v-004', vaultName: 'Vault Utama', type: 'repair', status: 'overdue', scheduledDate: '2024-03-12T09:00:00Z', completedDate: null, assignedTo: 'Teknisi B', notes: 'Perbaikan controller yang offline', createdAt: '2024-03-05' },
-  { id: 'm-007', branchId: 'br-006', branchName: 'KCP Tasikmalaya', vaultId: 'v-006', vaultName: 'Vault Utama', type: 'calibration', status: 'completed', scheduledDate: '2024-03-08T09:00:00Z', completedDate: '2024-03-08T12:00:00Z', assignedTo: 'Teknisi C', notes: 'Kalibrasi fingerprint scanner', createdAt: '2024-03-01' },
-  { id: 'm-008', branchId: 'br-008', branchName: 'KCP Sukabumi', vaultId: 'v-008', vaultName: 'Vault Utama', type: 'cleaning', status: 'completed', scheduledDate: '2024-03-05T09:00:00Z', completedDate: '2024-03-05T10:30:00Z', assignedTo: 'Teknisi A', notes: 'Pembersihan rutin', createdAt: '2024-02-28' },
-];
+
 
 const statusConfig: Record<string, { color: string; icon: typeof CheckCircle; label: string }> = {
   scheduled: { color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Calendar, label: 'Scheduled' },
@@ -50,34 +41,50 @@ const typeColors: Record<string, string> = {
 export default function MaintenancePage() {
   const [filter, setFilter] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [schedules, setSchedules] = useState(mockSchedules);
-  const [formData, setFormData] = useState({ branchId: '', type: 'cleaning', scheduledDate: '' });
+  const [schedules, setSchedules] = useState<MaintenanceSchedule[]>([]);
+  const [formData, setFormData] = useState({ 
+    vaultId: '', 
+    type: 'cleaning', 
+    name: '',
+    description: '',
+    intervalDays: 30,
+    nextDueAt: '' 
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
   const [isBranchesLoading, setIsBranchesLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!formData.branchId || !formData.scheduledDate) return;
+    if (!formData.vaultId || !formData.name || !formData.type) return;
     setIsSubmitting(true);
     try {
-      const newSchedule = await maintenanceService.create(formData);
-      setSchedules([...schedules, newSchedule]);
+      await maintenanceService.createPlan(formData);
+      // Refresh logs after creating plan
+      const logs = await maintenanceService.getLogs();
+      setSchedules(Array.isArray(logs) ? logs : []);
       setIsAddDialogOpen(false);
-      setFormData({ branchId: '', type: 'cleaning', scheduledDate: '' });
+      setFormData({ 
+        vaultId: '', 
+        type: 'cleaning', 
+        name: '',
+        description: '',
+        intervalDays: 30,
+        nextDueAt: '' 
+      });
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create maintenance');
-      console.error('Failed to create maintenance:', error);
+      alert(error.response?.data?.message || 'Failed to create maintenance plan');
+      console.error('Failed to create maintenance plan:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   useEffect(() => {
-    maintenanceService.getAll()
-      .then(data => setSchedules(Array.isArray(data) && data.length > 0 ? data : mockSchedules))
+    maintenanceService.getLogs()
+      .then(data => setSchedules(Array.isArray(data) ? data : []))
       .catch(err => {
-        console.error('Failed to fetch maintenance schedules:', err);
-        setSchedules(mockSchedules);
+        console.error('Failed to fetch maintenance logs:', err);
+        setSchedules([]);
       });
   }, []);
 
@@ -99,11 +106,11 @@ export default function MaintenancePage() {
   const filtered = filter === 'all' ? schedules : schedules.filter((s) => s.status === filter);
 
   const counts = {
-    all: mockSchedules.length,
-    scheduled: mockSchedules.filter((s) => s.status === 'scheduled').length,
-    in_progress: mockSchedules.filter((s) => s.status === 'in_progress').length,
-    completed: mockSchedules.filter((s) => s.status === 'completed').length,
-    overdue: mockSchedules.filter((s) => s.status === 'overdue').length,
+    all: schedules.length,
+    scheduled: schedules.filter((s) => s.status === 'scheduled').length,
+    in_progress: schedules.filter((s) => s.status === 'in_progress').length,
+    completed: schedules.filter((s) => s.status === 'completed').length,
+    overdue: schedules.filter((s) => s.status === 'overdue').length,
   };
 
   return (
@@ -214,33 +221,63 @@ export default function MaintenancePage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Branch</Label>
+              <Label>Vault ID</Label>
+              <Input 
+                placeholder="Enter vault ID" 
+                value={formData.vaultId} 
+                onChange={(e) => setFormData({...formData, vaultId: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Maintenance Name</Label>
+              <Input 
+                placeholder="e.g. Monthly Inspection" 
+                value={formData.name} 
+                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
               <Select 
-                value={formData.branchId} 
-                onValueChange={(value) => setFormData({...formData, branchId: value})}
-                disabled={isBranchesLoading}
+                value={formData.type} 
+                onValueChange={(value) => setFormData({...formData, type: value as string})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={isBranchesLoading ? "Loading branches..." : "Select branch"}>
-                    {formData.branchId && branches.find(b => b.id === formData.branchId)?.name || "Select branch"}
-                  </SelectValue>
+                  <SelectValue placeholder="Select maintenance type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="cleaning">Cleaning</SelectItem>
+                  <SelectItem value="inspection">Inspection</SelectItem>
+                  <SelectItem value="repair">Repair</SelectItem>
+                  <SelectItem value="lubrication">Lubrication</SelectItem>
+                  <SelectItem value="calibration">Calibration</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Maintenance Type</Label>
-              <Input placeholder="Select type" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} />
+              <Label>Description</Label>
+              <Input 
+                placeholder="Optional description" 
+                value={formData.description} 
+                onChange={(e) => setFormData({...formData, description: e.target.value})} 
+              />
             </div>
             <div className="space-y-2">
-              <Label>Scheduled Date</Label>
-              <Input type="date" value={formData.scheduledDate} onChange={(e) => setFormData({...formData, scheduledDate: e.target.value})} />
+              <Label>Interval (Days)</Label>
+              <Input 
+                type="number" 
+                placeholder="30" 
+                value={formData.intervalDays} 
+                onChange={(e) => setFormData({...formData, intervalDays: parseInt(e.target.value) || 30})} 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Next Due Date</Label>
+              <Input 
+                type="datetime-local" 
+                value={formData.nextDueAt} 
+                onChange={(e) => setFormData({...formData, nextDueAt: e.target.value})} 
+              />
             </div>
           </div>
           <DialogFooter>

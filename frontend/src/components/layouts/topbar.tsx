@@ -120,7 +120,7 @@ export function Topbar() {
             </Avatar>
             <div className="hidden md:block text-left">
               <p className="text-xs font-medium leading-none">{user?.fullName || 'User'}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{user?.role || 'Role'}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{user?.roles?.[0] || 'Role'}</p>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">

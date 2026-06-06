@@ -9,20 +9,40 @@ export interface User {
   username: string;
   email: string;
   fullName: string;
-  role: UserRole;
-  permissions: Permission[];
-  branchId: string;
-  branchName: string;
-  avatar?: string;
-  status: UserStatus;
-  lastLogin?: string;
+  phone?: string;
+  nik?: string;
+  employeeId?: string;
+  avatarUrl?: string;
+  organizationId?: string;
+  branchId?: string;
+  enabled: boolean;
+  locked: boolean;
+  roles: string[];
+  permissions: string[];
+  lastLoginAt?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-export type UserRole = 'super_admin' | 'admin' | 'operator' | 'viewer' | 'auditor';
+export type UserRole = 
+  | 'SUPER_ADMIN'
+  | 'ADMIN_PUSAT'
+  | 'ADMIN_CABANG'
+  | 'OPERATOR'
+  | 'SECURITY'
+  | 'MAINTENANCE'
+  | 'VIEWER'
+  | 'VIEWER_CCTV';
 
-export type UserStatus = 'active' | 'inactive' | 'suspended' | 'locked';
+export type UserStatus = 'active' | 'inactive' | 'locked';
+
+// Pagination Types
+export interface PageResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
+}
 
 export type Permission =
   | 'dashboard.view'
@@ -64,7 +84,7 @@ export interface OTPVerification {
   method: 'whatsapp' | 'email';
 }
 
-// Organization Types
+// Organization Types (Frontend - deprecated, use Backend types)
 export interface Organization {
   id: string;
   name: string;
@@ -91,9 +111,38 @@ export interface Branch extends Organization {
   longitude?: number;
 }
 
+// Backend Organization Types (matches backend DTOs exactly)
+export interface BackendOrganization {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  address: string;
+  phone: string;
+  email: string;
+  active: boolean;
+}
+
+export interface BackendBranch {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  address: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  phone: string;
+  email: string;
+  latitude?: number;
+  longitude?: number;
+  timezone: string;
+  active: boolean;
+}
+
 // Vault & Monitoring Types
 export type VaultStatus = 'open' | 'closed' | 'locked' | 'alarm' | 'maintenance';
-export type DeviceStatus = 'online' | 'offline' | 'warning' | 'error';
+export type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'MAINTENANCE' | 'DECOMMISSIONED';
 export type AlarmStatus = 'active' | 'acknowledged' | 'resolved' | 'silenced';
 
 export interface VaultMonitor {
@@ -137,24 +186,31 @@ export type DeviceType =
   | 'lock';
 
 // Device Management Types
-export interface Device {
+export interface DeviceBranch {
   id: string;
   name: string;
+  code: string;
+}
+
+export interface DeviceVault {
+  id: string;
+  name: string;
+}
+
+export interface Device {
+  id: string;
+  deviceCode: string;
+  name: string;
   type: DeviceType;
-  serialNumber: string;
-  model: string;
-  firmware: string;
   ipAddress: string;
   macAddress: string;
-  branchId: string;
-  branchName: string;
-  vaultId: string;
-  status: DeviceStatus;
+  firmwareVersion: string;
   signalQuality: number;
-  lastHeartbeat: string;
-  mqttTopic: string;
-  installedAt: string;
-  lastMaintenance: string | null;
+  status: DeviceStatus;
+  active: boolean;
+  lastHeartbeat: string | null;
+  branch?: DeviceBranch;
+  vault?: DeviceVault;
   createdAt: string;
   updatedAt: string;
 }

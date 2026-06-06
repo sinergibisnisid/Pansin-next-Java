@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, UserPlus, Shield, Mail } from 'lucide-react';
+import { Plus, UserPlus, Shield, Mail, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
 import { StatusBadge } from '@/components/shared/status-badge';
@@ -15,23 +15,32 @@ import { getInitials } from '@/lib/utils';
 import type { User } from '@/types';
 import { userService } from '@/services';
 
-const mockUsers: User[] = [
-  { id: '1', username: 'admin', email: 'admin@bankbjb.co.id', fullName: 'Administrator', role: 'super_admin', permissions: [], branchId: 'hq-001', branchName: 'Kantor Pusat', status: 'active', lastLogin: '2024-03-15T09:00:00Z', createdAt: '2024-01-01', updatedAt: '2024-03-15' },
-  { id: '2', username: 'budi.santoso', email: 'budi@bankbjb.co.id', fullName: 'Budi Santoso', role: 'operator', permissions: [], branchId: 'br-002', branchName: 'KCP Bandung Selatan', status: 'active', lastLogin: '2024-03-15T09:15:00Z', createdAt: '2024-01-15', updatedAt: '2024-03-15' },
-  { id: '3', username: 'siti.rahayu', email: 'siti@bankbjb.co.id', fullName: 'Siti Rahayu', role: 'operator', permissions: [], branchId: 'br-006', branchName: 'KCP Tasikmalaya', status: 'active', lastLogin: '2024-03-15T09:05:00Z', createdAt: '2024-01-20', updatedAt: '2024-03-15' },
-  { id: '4', username: 'ahmad.hidayat', email: 'ahmad@bankbjb.co.id', fullName: 'Ahmad Hidayat', role: 'admin', permissions: [], branchId: 'hq-001', branchName: 'Kantor Pusat', status: 'active', lastLogin: '2024-03-15T08:30:00Z', createdAt: '2024-02-01', updatedAt: '2024-03-14' },
-  { id: '5', username: 'dewi.lestari', email: 'dewi@bankbjb.co.id', fullName: 'Dewi Lestari', role: 'viewer', permissions: [], branchId: 'br-001', branchName: 'KCP Bandung Utara', status: 'active', lastLogin: '2024-03-14T16:00:00Z', createdAt: '2024-02-10', updatedAt: '2024-03-14' },
-  { id: '6', username: 'rudi.hermawan', email: 'rudi@bankbjb.co.id', fullName: 'Rudi Hermawan', role: 'operator', permissions: [], branchId: 'br-004', branchName: 'KCP Garut', status: 'inactive', lastLogin: '2024-03-10T10:00:00Z', createdAt: '2024-02-15', updatedAt: '2024-03-10' },
-  { id: '7', username: 'nina.marlina', email: 'nina@bankbjb.co.id', fullName: 'Nina Marlina', role: 'auditor', permissions: [], branchId: 'hq-001', branchName: 'Kantor Pusat', status: 'active', lastLogin: '2024-03-15T07:45:00Z', createdAt: '2024-02-20', updatedAt: '2024-03-15' },
-  { id: '8', username: 'eko.prasetyo', email: 'eko@bankbjb.co.id', fullName: 'Eko Prasetyo', role: 'operator', permissions: [], branchId: 'br-005', branchName: 'KCP Sumedang', status: 'suspended', lastLogin: '2024-03-01T09:00:00Z', createdAt: '2024-03-01', updatedAt: '2024-03-05' },
-];
-
 const roleColors: Record<string, string> = {
-  super_admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  admin: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  operator: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  viewer: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  auditor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  SUPER_ADMIN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  ADMIN_PUSAT: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  ADMIN_CABANG: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  OPERATOR: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  SECURITY: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  MAINTENANCE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+  VIEWER: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  VIEWER_CCTV: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+};
+
+const roleLabels: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN_PUSAT: 'Admin Pusat',
+  ADMIN_CABANG: 'Admin Cabang',
+  OPERATOR: 'Operator',
+  SECURITY: 'Security',
+  MAINTENANCE: 'Maintenance',
+  VIEWER: 'Viewer',
+  VIEWER_CCTV: 'Viewer CCTV',
+};
+
+const getUserStatus = (user: User): 'active' | 'inactive' | 'locked' => {
+  if (user.locked) return 'locked';
+  if (!user.enabled) return 'inactive';
+  return 'active';
 };
 
 const columns: ColumnDef<User>[] = [
@@ -56,39 +65,40 @@ const columns: ColumnDef<User>[] = [
     ),
   },
   {
-    accessorKey: 'role',
+    accessorKey: 'roles',
     header: 'Role',
-    cell: ({ row }) => (
-      <Badge variant="outline" className={roleColors[row.original.role]}>
-        <Shield className="h-3 w-3 mr-1" />
-        {row.original.role.replace('_', ' ')}
-      </Badge>
-    ),
-  },
-  {
-    accessorKey: 'branchName',
-    header: 'Branch',
-    cell: ({ row }) => <span className="text-sm">{row.original.branchName}</span>,
+    cell: ({ row }) => {
+      const primaryRole = row.original.roles[0] || 'VIEWER';
+      return (
+        <Badge variant="outline" className={roleColors[primaryRole]}>
+          <Shield className="h-3 w-3 mr-1" />
+          {roleLabels[primaryRole] || primaryRole}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => (
-      <StatusBadge
-        status={row.original.status}
-        type="device"
-        label={row.original.status}
-        pulse={row.original.status === 'active'}
-      />
-    ),
+    cell: ({ row }) => {
+      const status = getUserStatus(row.original);
+      return (
+        <StatusBadge
+          status={status}
+          type="device"
+          label={status}
+          pulse={status === 'active'}
+        />
+      );
+    },
   },
   {
-    accessorKey: 'lastLogin',
+    accessorKey: 'lastLoginAt',
     header: 'Last Login',
     cell: ({ row }) => (
       <span className="text-xs text-muted-foreground">
-        {row.original.lastLogin
-          ? new Date(row.original.lastLogin).toLocaleDateString('id-ID', {
+        {row.original.lastLoginAt
+          ? new Date(row.original.lastLoginAt).toLocaleDateString('id-ID', {
               day: 'numeric',
               month: 'short',
               hour: '2-digit',
@@ -100,20 +110,85 @@ const columns: ColumnDef<User>[] = [
   },
 ];
 
+const createColumns = (
+  onEdit: (user: User) => void,
+  onDelete: (id: string) => void
+): ColumnDef<User>[] => [
+  ...columns,
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => (
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onEdit(row.original)}
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onDelete(row.original.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
+  },
+];
+
 export default function UsersPage() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', role: 'operator' });
+  const [formData, setFormData] = useState({ 
+    fullName: '', 
+    username: '', 
+    email: '', 
+    password: '', 
+    roleCodes: ['OPERATOR'] as string[] 
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    email: '',
+    fullName: '',
+    phone: '',
+    nik: '',
+    employeeId: '',
+    roleCodes: [] as string[],
+    enabled: true,
+  });
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await userService.getAll({ page, size: pageSize });
+      setUsers(response.items);
+      setTotal(response.total);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!formData.fullName || !formData.username || !formData.email || !formData.password) return;
     setIsSubmitting(true);
     try {
-      const newUser = await userService.create(formData);
-      setUsers([...users, newUser]);
+      await userService.create(formData);
+      fetchUsers();
       setIsAddDialogOpen(false);
-      setFormData({ fullName: '', username: '', email: '', password: '', role: 'operator' });
+      setFormData({ fullName: '', username: '', email: '', password: '', roleCodes: ['OPERATOR'] });
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create user');
       console.error('Failed to create user:', error);
@@ -122,14 +197,51 @@ export default function UsersPage() {
     }
   };
 
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone || '',
+      nik: user.nik || '',
+      employeeId: user.employeeId || '',
+      roleCodes: user.roles,
+      enabled: user.enabled,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingUser) return;
+    setIsSubmitting(true);
+    try {
+      await userService.update(editingUser.id, editFormData);
+      fetchUsers();
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update user');
+      console.error('Failed to update user:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteUserId) return;
+    try {
+      await userService.delete(deleteUserId);
+      fetchUsers();
+      setDeleteUserId(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to delete user');
+      console.error('Failed to delete user:', error);
+    }
+  };
+
   useEffect(() => {
-    userService.getAll()
-      .then(data => setUsers(Array.isArray(data) ? data : []))
-      .catch(err => {
-        console.error('Failed to fetch users:', err);
-        setUsers([]);
-      });
-  }, []);
+    fetchUsers();
+  }, [page, pageSize]);
 
   return (
     <div className="space-y-6">
@@ -155,25 +267,25 @@ export default function UsersPage() {
       <div className="grid gap-2 sm:gap-4 grid-cols-2 sm:grid-cols-4">
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Total Users</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{users.length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{total}</p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Active</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1 text-emerald-400">{users.filter((u) => u.status === 'active').length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1 text-emerald-400">{users.filter((u) => getUserStatus(u) === 'active').length}</p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Operators</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{users.filter((u) => u.role === 'operator').length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{users.filter((u) => u.roles.includes('OPERATOR')).length}</p>
         </div>
         <div className="rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
           <p className="text-[10px] sm:text-xs text-muted-foreground">Admins</p>
-          <p className="text-xl sm:text-2xl font-bold mt-1">{users.filter((u) => u.role === 'admin' || u.role === 'super_admin').length}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{users.filter((u) => u.roles.some(r => r.includes('ADMIN') || r === 'SUPER_ADMIN')).length}</p>
         </div>
       </div>
 
       {/* Table */}
       <DataTable
-        columns={columns}
+        columns={createColumns(handleEdit, (id) => setDeleteUserId(id))}
         data={users}
         searchKey="fullName"
         searchPlaceholder="Search users..."
@@ -225,6 +337,82 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? 'Adding...' : 'Add User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input 
+                placeholder="Enter full name" 
+                value={editFormData.fullName}
+                onChange={(e) => setEditFormData({...editFormData, fullName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input 
+                type="email" 
+                placeholder="Enter email" 
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input 
+                placeholder="Enter phone" 
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>NIK</Label>
+              <Input 
+                placeholder="Enter NIK" 
+                value={editFormData.nik}
+                onChange={(e) => setEditFormData({...editFormData, nik: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Employee ID</Label>
+              <Input 
+                placeholder="Enter employee ID" 
+                value={editFormData.employeeId}
+                onChange={(e) => setEditFormData({...editFormData, employeeId: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this user? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteUserId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -53,10 +53,10 @@ export function VaultCard({ vault, viewMode }: VaultCardProps) {
           <div
             className={cn(
               'h-3 w-3 rounded-full',
-              vault.deviceStatus === 'online' ? 'bg-emerald-500' : 'bg-slate-500'
+              vault.deviceStatus === 'ONLINE' ? 'bg-emerald-500' : 'bg-slate-500'
             )}
           />
-          {vault.deviceStatus === 'online' && (
+          {vault.deviceStatus === 'ONLINE' && (
             <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-40" />
           )}
         </div>
@@ -121,7 +121,7 @@ export function VaultCard({ vault, viewMode }: VaultCardProps) {
 
       {/* Stream Preview */}
       <div className="relative h-32 bg-slate-900/50 flex items-center justify-center overflow-hidden">
-        {vault.deviceStatus === 'online' ? (
+        {vault.deviceStatus === 'ONLINE' ? (
           <>
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
             <Video className="h-8 w-8 text-slate-600" />

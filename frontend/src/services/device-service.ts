@@ -1,27 +1,50 @@
 import apiClient from './api-client';
-import type { Device } from '@/types';
+import type { Device, PageResponse } from '@/types';
 
 export const deviceService = {
-  create: async (data: {
-    name: string;
-    serialNumber: string;
-    type: string;
-    ipAddress?: string;
-    branchId?: string;
-  }): Promise<Device> => {
-    const payload = {
-      branchId: data.branchId || null,
-      deviceCode: data.serialNumber,
-      name: data.name,
-      type: data.type,
-      ipAddress: data.ipAddress || '',
-    };
-    const response = await apiClient.post('/devices', payload);
+  getAll: async (params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+  }): Promise<PageResponse<Device>> => {
+    const response = await apiClient.get('/devices', { params });
     return response.data.data;
   },
 
-  getAll: async (): Promise<Device[]> => {
-    const response = await apiClient.get('/devices');
-    return Array.isArray(response.data.data) ? response.data.data : [];
+  getById: async (id: string): Promise<Device> => {
+    const response = await apiClient.get(`/devices/${id}`);
+    return response.data.data;
+  },
+
+  create: async (data: {
+    branchId: string;
+    vaultId?: string;
+    deviceCode: string;
+    name: string;
+    type: string;
+    ipAddress?: string;
+    macAddress?: string;
+    firmwareVersion?: string;
+  }): Promise<Device> => {
+    const response = await apiClient.post('/devices', data);
+    return response.data.data;
+  },
+
+  update: async (id: string, data: {
+    branchId?: string;
+    vaultId?: string;
+    deviceCode?: string;
+    name?: string;
+    type?: string;
+    ipAddress?: string;
+    macAddress?: string;
+    firmwareVersion?: string;
+  }): Promise<Device> => {
+    const response = await apiClient.put(`/devices/${id}`, data);
+    return response.data.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/devices/${id}`);
   },
 };

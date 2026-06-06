@@ -1,31 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Cpu, Wifi, WifiOff, Signal, Activity } from 'lucide-react';
+import { Plus, Cpu, Wifi, WifiOff, Signal, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
-import { StatusBadge } from '@/components/shared/status-badge';
 import { StatCard } from '@/components/cards/stat-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Progress } from '@/components/ui/progress';
 import type { Device } from '@/types';
 import { deviceService } from '@/services';
 
-const mockDevices: Device[] = [
-  { id: 'd-001', name: 'Controller Vault BDG-01', type: 'controller', serialNumber: 'CTR-2024-001', model: 'PanCtrl v3', firmware: '3.2.1', ipAddress: '192.168.1.101', macAddress: 'AA:BB:CC:DD:01:01', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', status: 'online', signalQuality: 95, lastHeartbeat: '2024-03-15T09:30:00Z', mqttTopic: 'vault/bdg01/controller', installedAt: '2024-01-15', lastMaintenance: '2024-03-01', createdAt: '2024-01-15', updatedAt: '2024-03-15' },
-  { id: 'd-002', name: 'Fingerprint BDG-01', type: 'fingerprint', serialNumber: 'FPR-2024-001', model: 'BioScan X5', firmware: '2.1.0', ipAddress: '192.168.1.102', macAddress: 'AA:BB:CC:DD:01:02', branchId: 'br-001', branchName: 'KCP Bandung Utara', vaultId: 'v-001', status: 'online', signalQuality: 88, lastHeartbeat: '2024-03-15T09:29:00Z', mqttTopic: 'vault/bdg01/fingerprint', installedAt: '2024-01-15', lastMaintenance: '2024-02-28', createdAt: '2024-01-15', updatedAt: '2024-03-15' },
-  { id: 'd-003', name: 'Camera Vault BDG-02', type: 'camera', serialNumber: 'CAM-2024-001', model: 'SecureCam HD', firmware: '4.0.2', ipAddress: '192.168.2.101', macAddress: 'AA:BB:CC:DD:02:01', branchId: 'br-002', branchName: 'KCP Bandung Selatan', vaultId: 'v-002', status: 'online', signalQuality: 92, lastHeartbeat: '2024-03-15T09:30:00Z', mqttTopic: 'vault/bdg02/camera', installedAt: '2024-01-20', lastMaintenance: '2024-03-05', createdAt: '2024-01-20', updatedAt: '2024-03-15' },
-  { id: 'd-004', name: 'Door Sensor CMH-01', type: 'sensor_door', serialNumber: 'DSR-2024-001', model: 'MagSense Pro', firmware: '1.5.3', ipAddress: '192.168.3.101', macAddress: 'AA:BB:CC:DD:03:01', branchId: 'br-003', branchName: 'KCP Cimahi', vaultId: 'v-003', status: 'online', signalQuality: 78, lastHeartbeat: '2024-03-15T09:28:00Z', mqttTopic: 'vault/cmh01/door', installedAt: '2024-02-01', lastMaintenance: null, createdAt: '2024-02-01', updatedAt: '2024-03-15' },
-  { id: 'd-005', name: 'Controller Vault GRT-01', type: 'controller', serialNumber: 'CTR-2024-004', model: 'PanCtrl v3', firmware: '3.2.1', ipAddress: '192.168.4.101', macAddress: 'AA:BB:CC:DD:04:01', branchId: 'br-004', branchName: 'KCP Garut', vaultId: 'v-004', status: 'offline', signalQuality: 0, lastHeartbeat: '2024-03-14T17:00:00Z', mqttTopic: 'vault/grt01/controller', installedAt: '2024-02-10', lastMaintenance: '2024-03-01', createdAt: '2024-02-10', updatedAt: '2024-03-14' },
-  { id: 'd-006', name: 'Alarm System SMD-01', type: 'alarm', serialNumber: 'ALM-2024-001', model: 'AlertMax 200', firmware: '2.3.0', ipAddress: '192.168.5.101', macAddress: 'AA:BB:CC:DD:05:01', branchId: 'br-005', branchName: 'KCP Sumedang', vaultId: 'v-005', status: 'online', signalQuality: 90, lastHeartbeat: '2024-03-15T09:30:00Z', mqttTopic: 'vault/smd01/alarm', installedAt: '2024-02-15', lastMaintenance: '2024-03-10', createdAt: '2024-02-15', updatedAt: '2024-03-15' },
-  { id: 'd-007', name: 'Motion Sensor CJR-01', type: 'sensor_motion', serialNumber: 'MSR-2024-001', model: 'MotionEye v2', firmware: '1.2.1', ipAddress: '192.168.7.102', macAddress: 'AA:BB:CC:DD:07:02', branchId: 'br-007', branchName: 'KCP Cianjur', vaultId: 'v-007', status: 'warning', signalQuality: 45, lastHeartbeat: '2024-03-15T09:15:00Z', mqttTopic: 'vault/cjr01/motion', installedAt: '2024-03-01', lastMaintenance: null, createdAt: '2024-03-01', updatedAt: '2024-03-15' },
-  { id: 'd-008', name: 'Electronic Lock TSK-01', type: 'lock', serialNumber: 'LCK-2024-001', model: 'SecureLock X1', firmware: '3.0.0', ipAddress: '192.168.6.103', macAddress: 'AA:BB:CC:DD:06:03', branchId: 'br-006', branchName: 'KCP Tasikmalaya', vaultId: 'v-006', status: 'online', signalQuality: 97, lastHeartbeat: '2024-03-15T09:30:00Z', mqttTopic: 'vault/tsk01/lock', installedAt: '2024-02-20', lastMaintenance: '2024-03-12', createdAt: '2024-02-20', updatedAt: '2024-03-15' },
-];
+const statusColors: Record<string, string> = {
+  ONLINE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  OFFLINE: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  DEGRADED: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  MAINTENANCE: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  DECOMMISSIONED: 'bg-red-500/20 text-red-400 border-red-500/30',
+};
 
-const columns: ColumnDef<Device>[] = [
+const createColumns = (
+  onEdit: (device: Device) => void,
+  onDelete: (id: string) => void
+): ColumnDef<Device>[] => [
   {
     accessorKey: 'name',
     header: 'Device',
@@ -36,7 +36,7 @@ const columns: ColumnDef<Device>[] = [
         </div>
         <div>
           <p className="text-sm font-medium">{row.original.name}</p>
-          <p className="text-xs text-muted-foreground">{row.original.serialNumber}</p>
+          <p className="text-xs text-muted-foreground font-mono">{row.original.deviceCode}</p>
         </div>
       </div>
     ),
@@ -46,20 +46,36 @@ const columns: ColumnDef<Device>[] = [
     header: 'Type',
     cell: ({ row }) => (
       <span className="text-xs capitalize px-2 py-1 rounded-md bg-muted/50">
-        {row.original.type.replace('_', ' ')}
+        {row.original.type.replace(/_/g, ' ')}
       </span>
     ),
   },
   {
-    accessorKey: 'branchName',
+    accessorKey: 'branch',
     header: 'Branch',
-    cell: ({ row }) => <span className="text-sm">{row.original.branchName}</span>,
+    cell: ({ row }) => (
+      <span className="text-sm">{row.original.branch?.name || '-'}</span>
+    ),
+  },
+  {
+    accessorKey: 'vault',
+    header: 'Vault',
+    cell: ({ row }) => (
+      <span className="text-sm">{row.original.vault?.name || '-'}</span>
+    ),
   },
   {
     accessorKey: 'ipAddress',
     header: 'IP Address',
     cell: ({ row }) => (
-      <span className="text-xs font-mono text-muted-foreground">{row.original.ipAddress}</span>
+      <span className="text-xs font-mono text-muted-foreground">{row.original.ipAddress || '-'}</span>
+    ),
+  },
+  {
+    accessorKey: 'firmwareVersion',
+    header: 'Firmware',
+    cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground">{row.original.firmwareVersion || '-'}</span>
     ),
   },
   {
@@ -67,8 +83,8 @@ const columns: ColumnDef<Device>[] = [
     header: 'Signal',
     cell: ({ row }) => (
       <div className="flex items-center gap-2 w-24">
-        <Progress value={row.original.signalQuality} className="h-1.5" />
-        <span className="text-xs text-muted-foreground">{row.original.signalQuality}%</span>
+        <Progress value={row.original.signalQuality ?? 0} className="h-1.5" />
+        <span className="text-xs text-muted-foreground">{row.original.signalQuality ?? 0}%</span>
       </div>
     ),
   },
@@ -76,29 +92,95 @@ const columns: ColumnDef<Device>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => (
-      <StatusBadge
-        status={row.original.status}
-        type="device"
-        pulse={row.original.status === 'online'}
-      />
+      <Badge variant="outline" className={statusColors[row.original.status] || statusColors.OFFLINE}>
+        {row.original.status}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'lastHeartbeat',
+    header: 'Last Heartbeat',
+    cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground">
+        {row.original.lastHeartbeat
+          ? new Date(row.original.lastHeartbeat).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : 'Never'}
+      </span>
+    ),
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => (
+      <div className="flex gap-2">
+        <Button size="sm" variant="ghost" onClick={() => onEdit(row.original)}>
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onDelete(row.original.id)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     ),
   },
 ];
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState(mockDevices);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', serialNumber: '', type: 'controller', ipAddress: '' });
+  const [formData, setFormData] = useState({
+    branchId: '',
+    vaultId: '',
+    deviceCode: '',
+    name: '',
+    type: 'CONTROLLER',
+    ipAddress: '',
+    macAddress: '',
+    firmwareVersion: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    branchId: '',
+    vaultId: '',
+    deviceCode: '',
+    name: '',
+    type: '',
+    ipAddress: '',
+    macAddress: '',
+    firmwareVersion: '',
+  });
+  const [deleteDeviceId, setDeleteDeviceId] = useState<string | null>(null);
+
+  const fetchDevices = async () => {
+    setIsLoading(true);
+    try {
+      const response = await deviceService.getAll();
+      setDevices(response.items);
+      setTotal(response.total);
+    } catch (error) {
+      console.error('Failed to fetch devices:', error);
+      setDevices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.serialNumber) return;
+    if (!formData.name || !formData.deviceCode || !formData.branchId) return;
     setIsSubmitting(true);
     try {
-      const newDevice = await deviceService.create(formData);
-      setDevices([...devices, newDevice]);
+      await deviceService.create(formData);
+      fetchDevices();
       setIsAddDialogOpen(false);
-      setFormData({ name: '', serialNumber: '', type: 'controller', ipAddress: '' });
+      setFormData({ branchId: '', vaultId: '', deviceCode: '', name: '', type: 'CONTROLLER', ipAddress: '', macAddress: '', firmwareVersion: '' });
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create device');
       console.error('Failed to create device:', error);
@@ -107,13 +189,56 @@ export default function DevicesPage() {
     }
   };
 
+  const handleEdit = (device: Device) => {
+    setEditingDevice(device);
+    setEditFormData({
+      branchId: device.branch?.id || '',
+      vaultId: device.vault?.id || '',
+      deviceCode: device.deviceCode,
+      name: device.name,
+      type: device.type,
+      ipAddress: device.ipAddress || '',
+      macAddress: device.macAddress || '',
+      firmwareVersion: device.firmwareVersion || '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingDevice) return;
+    setIsSubmitting(true);
+    try {
+      await deviceService.update(editingDevice.id, editFormData);
+      fetchDevices();
+      setIsEditDialogOpen(false);
+      setEditingDevice(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to update device');
+      console.error('Failed to update device:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDeviceId) return;
+    try {
+      await deviceService.delete(deleteDeviceId);
+      fetchDevices();
+      setDeleteDeviceId(null);
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Failed to delete device');
+      console.error('Failed to delete device:', error);
+    }
+  };
+
   useEffect(() => {
-    deviceService.getAll().then(data => setDevices(Array.isArray(data) ? data : [])).catch(console.error);
+    fetchDevices();
   }, []);
 
-  const onlineCount = devices.filter((d) => d.status === 'online').length;
-  const offlineCount = devices.filter((d) => d.status === 'offline').length;
-  const warningCount = devices.filter((d) => d.status === 'warning').length;
+  const onlineCount = devices.filter((d) => d.status === 'ONLINE').length;
+  const offlineCount = devices.filter((d) => d.status === 'OFFLINE').length;
+  const degradedCount = devices.filter((d) => d.status === 'DEGRADED').length;
 
   return (
     <div className="space-y-6">
@@ -125,8 +250,8 @@ export default function DevicesPage() {
             Monitor and manage all connected devices
           </p>
         </div>
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400"
           onClick={() => setIsAddDialogOpen(true)}
         >
@@ -137,15 +262,15 @@ export default function DevicesPage() {
 
       {/* Stats */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Devices" value={devices.length} icon={Cpu} variant="info" subtitle="Registered devices" />
+        <StatCard title="Total Devices" value={total} icon={Cpu} variant="info" subtitle="Registered devices" />
         <StatCard title="Online" value={onlineCount} icon={Wifi} variant="success" pulse subtitle="Connected & active" />
         <StatCard title="Offline" value={offlineCount} icon={WifiOff} variant="danger" subtitle="Not responding" />
-        <StatCard title="Warning" value={warningCount} icon={Signal} variant="warning" subtitle="Needs attention" />
+        <StatCard title="Degraded" value={degradedCount} icon={Signal} variant="warning" subtitle="Needs attention" />
       </div>
 
       {/* Table */}
       <DataTable
-        columns={columns}
+        columns={createColumns(handleEdit, (id) => setDeleteDeviceId(id))}
         data={devices}
         searchKey="name"
         searchPlaceholder="Search devices..."
@@ -159,22 +284,105 @@ export default function DevicesPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Device Name</Label>
+              <Label>Device Name *</Label>
               <Input placeholder="Enter device name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} />
             </div>
             <div className="space-y-2">
-              <Label>Serial Number</Label>
-              <Input placeholder="Enter serial number" value={formData.serialNumber} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} />
+              <Label>Device Code *</Label>
+              <Input placeholder="Enter device code" value={formData.deviceCode} onChange={(e) => setFormData({...formData, deviceCode: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Branch ID *</Label>
+              <Input placeholder="Enter branch ID" value={formData.branchId} onChange={(e) => setFormData({...formData, branchId: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Vault ID</Label>
+              <Input placeholder="Enter vault ID" value={formData.vaultId} onChange={(e) => setFormData({...formData, vaultId: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Input placeholder="e.g. CONTROLLER, CAMERA" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} />
             </div>
             <div className="space-y-2">
               <Label>IP Address</Label>
-              <Input placeholder="Enter IP address" value={formData.ipAddress} onChange={(e) => setFormData({...formData, ipAddress: e.target.value})} />
+              <Input placeholder="e.g. 192.168.1.100" value={formData.ipAddress} onChange={(e) => setFormData({...formData, ipAddress: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>MAC Address</Label>
+              <Input placeholder="e.g. AA:BB:CC:DD:EE:FF" value={formData.macAddress} onChange={(e) => setFormData({...formData, macAddress: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Firmware Version</Label>
+              <Input placeholder="e.g. 1.0.0" value={formData.firmwareVersion} onChange={(e) => setFormData({...formData, firmwareVersion: e.target.value})} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? 'Adding...' : 'Add Device'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Device Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Device</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Device Name</Label>
+              <Input placeholder="Enter device name" value={editFormData.name} onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Device Code</Label>
+              <Input placeholder="Enter device code" value={editFormData.deviceCode} onChange={(e) => setEditFormData({...editFormData, deviceCode: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Branch ID</Label>
+              <Input placeholder="Enter branch ID" value={editFormData.branchId} onChange={(e) => setEditFormData({...editFormData, branchId: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Vault ID</Label>
+              <Input placeholder="Enter vault ID" value={editFormData.vaultId} onChange={(e) => setEditFormData({...editFormData, vaultId: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>IP Address</Label>
+              <Input placeholder="e.g. 192.168.1.100" value={editFormData.ipAddress} onChange={(e) => setEditFormData({...editFormData, ipAddress: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>MAC Address</Label>
+              <Input placeholder="e.g. AA:BB:CC:DD:EE:FF" value={editFormData.macAddress} onChange={(e) => setEditFormData({...editFormData, macAddress: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Firmware Version</Label>
+              <Input placeholder="e.g. 1.0.0" value={editFormData.firmwareVersion} onChange={(e) => setEditFormData({...editFormData, firmwareVersion: e.target.value})} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteDeviceId} onOpenChange={(open) => !open && setDeleteDeviceId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Device</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this device? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDeviceId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

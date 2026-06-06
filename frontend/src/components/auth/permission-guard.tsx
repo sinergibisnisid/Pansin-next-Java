@@ -44,7 +44,7 @@ export function PermissionGuard({
   }
 
   // Check multiple roles
-  if (roles && !roles.includes(user.role as RoleType)) {
+  if (roles && !roles.some(r => user.roles?.includes(r))) {
     return <>{fallback}</>;
   }
 

@@ -22,7 +22,7 @@ export type RoleType = keyof typeof ROLES;
  */
 export function hasPermission(user: User | null, permission: string): boolean {
   if (!user) return false;
-  if (user.role === ROLES.SUPER_ADMIN) return true;
+  if (user.roles?.includes(ROLES.SUPER_ADMIN)) return true;
   return user.permissions?.includes(permission) ?? false;
 }
 
@@ -31,7 +31,7 @@ export function hasPermission(user: User | null, permission: string): boolean {
  */
 export function hasAnyPermission(user: User | null, permissions: string[]): boolean {
   if (!user) return false;
-  if (user.role === ROLES.SUPER_ADMIN) return true;
+  if (user.roles?.includes(ROLES.SUPER_ADMIN)) return true;
   return permissions.some(p => user.permissions?.includes(p));
 }
 
@@ -40,7 +40,7 @@ export function hasAnyPermission(user: User | null, permissions: string[]): bool
  */
 export function hasAllPermissions(user: User | null, permissions: string[]): boolean {
   if (!user) return false;
-  if (user.role === ROLES.SUPER_ADMIN) return true;
+  if (user.roles?.includes(ROLES.SUPER_ADMIN)) return true;
   return permissions.every(p => user.permissions?.includes(p));
 }
 
@@ -49,7 +49,7 @@ export function hasAllPermissions(user: User | null, permissions: string[]): boo
  */
 export function hasRole(user: User | null, role: RoleType): boolean {
   if (!user) return false;
-  return user.role === role;
+  return user.roles?.includes(role) ?? false;
 }
 
 /**
@@ -57,7 +57,7 @@ export function hasRole(user: User | null, role: RoleType): boolean {
  */
 export function hasAnyRole(user: User | null, roles: RoleType[]): boolean {
   if (!user) return false;
-  return roles.includes(user.role as RoleType);
+  return roles.some(r => user.roles?.includes(r));
 }
 
 /**
@@ -66,7 +66,8 @@ export function hasAnyRole(user: User | null, roles: RoleType[]): boolean {
 export function getDefaultRedirectPath(user: User | null): string {
   if (!user) return '/login';
   
-  switch (user.role) {
+  const primaryRole = user.roles?.[0];
+  switch (primaryRole) {
     case ROLES.VIEWER_CCTV:
       return '/monitoring'; // Redirect CCTV viewers directly to monitoring page
     case ROLES.SUPER_ADMIN:
@@ -83,7 +84,7 @@ export function getDefaultRedirectPath(user: User | null): string {
  */
 export function canAccessBranch(user: User | null, branchId: string): boolean {
   if (!user) return false;
-  if (user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN_PUSAT) return true;
+  if (user.roles?.includes(ROLES.SUPER_ADMIN) || user.roles?.includes(ROLES.ADMIN_PUSAT)) return true;
   return user.branchId === branchId;
 }
 
@@ -92,5 +93,5 @@ export function canAccessBranch(user: User | null, branchId: string): boolean {
  */
 export function canAccessAllBranches(user: User | null): boolean {
   if (!user) return false;
-  return user.role === ROLES.SUPER_ADMIN || user.role === ROLES.ADMIN_PUSAT;
+  return user.roles?.includes(ROLES.SUPER_ADMIN) || user.roles?.includes(ROLES.ADMIN_PUSAT);
 }
