@@ -274,6 +274,9 @@ export default function DevicesPage() {
         data={devices}
         searchKey="name"
         searchPlaceholder="Search devices..."
+        isLoading={isLoading}
+        emptyTitle="No devices found"
+        emptyDescription="No devices have been registered yet or no results match your search."
       />
 
       {/* Add Device Dialog */}

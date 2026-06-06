@@ -289,6 +289,9 @@ export default function UsersPage() {
         data={users}
         searchKey="fullName"
         searchPlaceholder="Search users..."
+        isLoading={isLoading}
+        emptyTitle="No users found"
+        emptyDescription="No users have been created yet or no results match your search."
       />
 
       {/* Add User Dialog */}

@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { EmptyState } from '@/components/shared/empty-error-state';
+import { Loader2 } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -49,6 +50,9 @@ interface DataTableProps<TData, TValue> {
   showPagination?: boolean;
   pageSize?: number;
   className?: string;
+  isLoading?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -60,6 +64,9 @@ export function DataTable<TData, TValue>({
   showPagination = true,
   pageSize = 10,
   className,
+  isLoading = false,
+  emptyTitle = 'No results',
+  emptyDescription = 'No data matches your search criteria.',
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -150,7 +157,16 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-32 text-center">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -167,7 +183,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length}>
-                  <EmptyState title="No results" description="No data matches your search criteria." />
+                  <EmptyState title={emptyTitle} description={emptyDescription} />
                 </TableCell>
               </TableRow>
             )}
