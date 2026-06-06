@@ -56,7 +56,7 @@ export default function OrganizationPage() {
   const handleEdit = (branch: BackendBranch) => {
     setEditingBranch(branch);
     setFormData({
-      organizationId: branch.organizationId,
+      organizationId: branch.organizationId || branch.organization?.id || '',
       name: branch.name,
       code: branch.code,
       city: branch.city || '',

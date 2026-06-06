@@ -3,7 +3,7 @@ import type {
   VaultMonitor,
   DashboardStats,
   ActivityEvent,
-  PaginatedResponse,
+  PageResponse,
 } from '@/types';
 
 // Mock Dashboard Stats
@@ -278,20 +278,20 @@ export const monitoringService = {
     return response.data;
   },
 
-  getActivities: async (page = 1, pageSize = 20): Promise<PaginatedResponse<ActivityEvent>> => {
+  getActivities: async (page = 0, size = 20): Promise<PageResponse<ActivityEvent>> => {
     if (process.env.NEXT_PUBLIC_USE_MOCK === 'true' || !process.env.NEXT_PUBLIC_API_URL) {
       await new Promise((resolve) => setTimeout(resolve, 500));
       return {
-        data: MOCK_ACTIVITIES,
+        items: MOCK_ACTIVITIES,
         total: MOCK_ACTIVITIES.length,
         page,
-        pageSize,
+        size,
         totalPages: 1,
       };
     }
     const response = await apiClient.get('/monitoring/activities', {
-      params: { page, pageSize },
+      params: { page, size },
     });
-    return response.data;
+    return response.data.data;
   },
 };

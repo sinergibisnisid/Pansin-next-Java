@@ -84,31 +84,40 @@ export interface OTPVerification {
   method: 'whatsapp' | 'email';
 }
 
-// Organization Types (Frontend - deprecated, use Backend types)
+// Organization Types
+/** @deprecated Use BackendOrganization instead */
 export interface Organization {
   id: string;
   name: string;
   code: string;
-  type: 'headquarters' | 'branch';
-  parentId?: string;
+  address: string;
+  phone: string;
+  email: string;
+  active: boolean;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** @deprecated Use BackendBranch instead */
+export interface Branch {
+  id: string;
+  name: string;
+  code: string;
   address: string;
   city: string;
   province: string;
+  postalCode: string;
   phone: string;
   email: string;
-  status: 'active' | 'inactive';
-  totalVaults: number;
-  totalDevices: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Branch extends Organization {
-  type: 'branch';
-  parentId: string;
-  headName: string;
   latitude?: number;
   longitude?: number;
+  timezone: string;
+  active: boolean;
+  organization?: { id: string; name: string; code: string };
+  organizationId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Backend Organization Types (matches backend DTOs exactly)
@@ -121,11 +130,16 @@ export interface BackendOrganization {
   phone: string;
   email: string;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BackendBranch {
   id: string;
-  organizationId: string;
+  /** Nested organization object returned by backend */
+  organization?: { id: string; name: string; code: string };
+  /** Flat organizationId - may be present in some responses */
+  organizationId?: string;
   code: string;
   name: string;
   address: string;
@@ -138,6 +152,8 @@ export interface BackendBranch {
   longitude?: number;
   timezone: string;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Vault & Monitoring Types
