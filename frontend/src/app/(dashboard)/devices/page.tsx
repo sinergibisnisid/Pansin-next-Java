@@ -163,11 +163,12 @@ export default function DevicesPage() {
     setIsLoading(true);
     try {
       const response = await deviceService.getAll();
-      setDevices(response.items);
-      setTotal(response.total);
+      setDevices(response?.items ?? []);
+      setTotal(response?.total ?? 0);
     } catch (error) {
       console.error('Failed to fetch devices:', error);
       setDevices([]);
+      setTotal(0);
     } finally {
       setIsLoading(false);
     }
