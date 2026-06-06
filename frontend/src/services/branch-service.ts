@@ -1,5 +1,5 @@
 import apiClient from './api-client';
-import type { BackendBranch, BackendOrganization } from '@/types';
+import type { BackendBranch } from '@/types';
 
 export const branchService = {
   getAll: async (): Promise<BackendBranch[]> => {
@@ -31,18 +31,18 @@ export const branchService = {
   },
 
   update: async (id: string, data: {
-    organizationId: string;
-    code: string;
-    name: string;
-    address: string;
-    city: string;
-    province: string;
-    postalCode: string;
-    phone: string;
-    email: string;
+    organizationId?: string;
+    code?: string;
+    name?: string;
+    address?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+    phone?: string;
+    email?: string;
     latitude?: number;
     longitude?: number;
-    timezone: string;
+    timezone?: string;
   }): Promise<BackendBranch> => {
     const response = await apiClient.put(`/branches/${id}`, data);
     return response.data.data;
@@ -50,12 +50,5 @@ export const branchService = {
 
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/branches/${id}`);
-  },
-};
-
-export const organizationService = {
-  getAll: async (): Promise<BackendOrganization[]> => {
-    const response = await apiClient.get('/organizations');
-    return Array.isArray(response.data.data) ? response.data.data : [];
   },
 };
