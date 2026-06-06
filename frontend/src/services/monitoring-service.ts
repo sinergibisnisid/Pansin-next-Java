@@ -41,14 +41,25 @@ export const monitoringService = {
     return response.data.data ?? response.data;
   },
 
-  getActivities: async (page = 0, size = 20): Promise<PageResponse<ActivityEvent>> => {
+  getActivities: async (page = 1, pageSize = 20): Promise<PageResponse<ActivityEvent>> => {
     try {
       const response = await apiClient.get('/monitoring/activities', {
-        params: { page, size },
+        params: { page, pageSize },
       });
-      return response.data.data;
+      const data = response.data.data;
+      // backend returns { data: [...], total, page, pageSize, totalPages }
+      if (data?.data) {
+        return {
+          items: Array.isArray(data.data) ? data.data : [],
+          total: data.total ?? 0,
+          page: data.page ?? page,
+          size: data.pageSize ?? pageSize,
+          totalPages: data.totalPages ?? 1,
+        };
+      }
+      return { items: [], total: 0, page, size: pageSize, totalPages: 0 };
     } catch {
-      return { items: [], total: 0, page, size, totalPages: 0 };
+      return { items: [], total: 0, page, size: pageSize, totalPages: 0 };
     }
   },
 };
