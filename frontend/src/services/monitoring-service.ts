@@ -8,14 +8,32 @@ import type {
 
 export const monitoringService = {
   getStats: async (): Promise<DashboardStats> => {
-    const response = await apiClient.get('/monitoring/stats');
-    return response.data.data ?? response.data;
+    try {
+      const response = await apiClient.get('/monitoring/stats');
+      return response.data.data ?? response.data;
+    } catch {
+      return {
+        totalBranches: 0,
+        activeVaults: 0,
+        activeAlarms: 0,
+        onlineDevices: 0,
+        totalDevices: 0,
+        activeUsers: 0,
+        todayActivities: 0,
+        mqttConnections: 0,
+        serverStatus: 'down',
+      };
+    }
   },
 
   getVaults: async (): Promise<VaultMonitor[]> => {
-    const response = await apiClient.get('/monitoring/vaults');
-    const data = response.data.data ?? response.data;
-    return Array.isArray(data) ? data : [];
+    try {
+      const response = await apiClient.get('/monitoring/vaults');
+      const data = response.data.data ?? response.data;
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   getVaultById: async (id: string): Promise<VaultMonitor> => {
@@ -24,9 +42,13 @@ export const monitoringService = {
   },
 
   getActivities: async (page = 0, size = 20): Promise<PageResponse<ActivityEvent>> => {
-    const response = await apiClient.get('/monitoring/activities', {
-      params: { page, size },
-    });
-    return response.data.data;
+    try {
+      const response = await apiClient.get('/monitoring/activities', {
+        params: { page, size },
+      });
+      return response.data.data;
+    } catch {
+      return { items: [], total: 0, page, size, totalPages: 0 };
+    }
   },
 };
