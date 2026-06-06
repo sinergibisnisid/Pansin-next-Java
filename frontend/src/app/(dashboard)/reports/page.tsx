@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Download, Calendar, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
@@ -16,19 +16,6 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import type { AuditLog } from '@/types';
 import { reportService } from '@/services';
-
-const mockAuditLogs: AuditLog[] = [
-  { id: 'log-001', timestamp: '2024-03-15T09:20:00Z', userId: 'u-001', userName: 'Administrator', branchId: 'hq-001', branchName: 'Kantor Pusat', action: 'User Login', category: 'auth', details: 'Login successful from IP 192.168.1.100', ipAddress: '192.168.1.100', severity: 'info' },
-  { id: 'log-002', timestamp: '2024-03-15T09:15:00Z', userId: 'u-002', userName: 'Budi Santoso', branchId: 'br-002', branchName: 'KCP Bandung Selatan', action: 'Vault Opened', category: 'vault_access', details: 'Vault opened with fingerprint authentication', ipAddress: '192.168.2.50', severity: 'info' },
-  { id: 'log-003', timestamp: '2024-03-15T09:10:00Z', userId: 'system', userName: 'System', branchId: 'br-003', branchName: 'KCP Cimahi', action: 'Alarm Triggered', category: 'alarm', details: 'Motion sensor triggered - unauthorized movement detected', ipAddress: '192.168.3.1', severity: 'critical' },
-  { id: 'log-004', timestamp: '2024-03-15T09:05:00Z', userId: 'u-003', userName: 'Siti Rahayu', branchId: 'br-006', branchName: 'KCP Tasikmalaya', action: 'Vault Opened', category: 'vault_access', details: 'Vault opened with fingerprint + PIN verification', ipAddress: '192.168.6.50', severity: 'info' },
-  { id: 'log-005', timestamp: '2024-03-15T08:45:00Z', userId: 'system', userName: 'System', branchId: 'br-004', branchName: 'KCP Garut', action: 'Device Offline', category: 'device', details: 'Controller CTR-2024-004 lost connection', ipAddress: '192.168.4.101', severity: 'warning' },
-  { id: 'log-006', timestamp: '2024-03-15T08:30:00Z', userId: 'u-004', userName: 'Ahmad Hidayat', branchId: 'hq-001', branchName: 'Kantor Pusat', action: 'Configuration Changed', category: 'configuration', details: 'MQTT broker settings updated', ipAddress: '192.168.1.105', severity: 'warning' },
-  { id: 'log-007', timestamp: '2024-03-15T08:00:00Z', userId: 'system', userName: 'System', branchId: 'br-001', branchName: 'KCP Bandung Utara', action: 'Vault Closed', category: 'vault_access', details: 'Vault auto-locked after timeout', ipAddress: '192.168.1.101', severity: 'info' },
-  { id: 'log-008', timestamp: '2024-03-15T07:45:00Z', userId: 'u-007', userName: 'Nina Marlina', branchId: 'hq-001', branchName: 'Kantor Pusat', action: 'Report Generated', category: 'system', details: 'Daily report generated and sent via email', ipAddress: '192.168.1.110', severity: 'info' },
-  { id: 'log-009', timestamp: '2024-03-15T06:00:00Z', userId: 'system', userName: 'System', branchId: 'br-007', branchName: 'KCP Cianjur', action: 'Maintenance Started', category: 'maintenance', details: 'Scheduled maintenance for vault inspection', ipAddress: '192.168.7.1', severity: 'info' },
-  { id: 'log-010', timestamp: '2024-03-14T23:00:00Z', userId: 'system', userName: 'System', branchId: 'hq-001', branchName: 'All Branches', action: 'System Backup', category: 'system', details: 'Nightly backup completed successfully', ipAddress: '10.0.0.1', severity: 'info' },
-];
 
 const severityColors: Record<string, string> = {
   info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -110,6 +97,30 @@ export default function ReportsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+
+  const fetchLogs = async () => {
+    setIsLoading(true);
+    try {
+      const response = await reportService.getLogs({
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+        severity: severityFilter !== 'all' ? severityFilter : undefined,
+      });
+      setAuditLogs(response.items);
+      setTotal(response.total);
+    } catch (error) {
+      console.error('Failed to fetch audit logs:', error);
+      setAuditLogs([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, [categoryFilter, severityFilter]);
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = window.URL.createObjectURL(blob);
@@ -144,12 +155,6 @@ export default function ReportsPage() {
       setIsExporting(false);
     }
   };
-
-  const filteredLogs = mockAuditLogs.filter((log) => {
-    const matchesCategory = categoryFilter === 'all' || log.category === categoryFilter;
-    const matchesSeverity = severityFilter === 'all' || log.severity === severityFilter;
-    return matchesCategory && matchesSeverity;
-  });
 
   return (
     <div className="space-y-6">
@@ -217,9 +222,12 @@ export default function ReportsPage() {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={filteredLogs}
+        data={auditLogs}
         searchKey="action"
         searchPlaceholder="Search audit logs..."
+        isLoading={isLoading}
+        emptyTitle="No audit logs found"
+        emptyDescription="No audit logs match the selected filters."
       />
     </div>
   );
