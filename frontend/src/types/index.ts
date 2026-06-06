@@ -287,18 +287,51 @@ export interface MQTTTopic {
 }
 
 // Maintenance Types
+export interface MaintenanceRelation {
+  id: string;
+  name: string;
+}
+
+export interface MaintenanceUserRef {
+  id: string;
+  fullName: string;
+  username: string;
+}
+
+export interface MaintenancePlan {
+  id: string;
+  vault?: MaintenanceRelation;
+  device?: MaintenanceRelation & { deviceCode?: string };
+  type: string;
+  name: string;
+  description?: string;
+  intervalDays: number;
+  nextDueAt?: string;
+  lastDoneAt?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaintenanceLog {
+  id: string;
+  plan?: MaintenancePlan;
+  vault?: MaintenanceRelation;
+  device?: MaintenanceRelation & { deviceCode?: string };
+  performedBy?: MaintenanceUserRef;
+  type: string;
+  notes?: string;
+  status: string;
+  performedAt: string;
+  createdAt: string;
+}
+
+/** @deprecated Use MaintenancePlan instead */
 export interface MaintenanceSchedule {
   id: string;
-  branchId: string;
-  branchName: string;
-  vaultId: string;
-  vaultName: string;
-  type: MaintenanceType;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'overdue' | 'cancelled';
-  scheduledDate: string;
-  completedDate: string | null;
-  assignedTo: string;
-  notes: string;
+  type: string;
+  status: string;
+  notes?: string;
   createdAt: string;
 }
 
