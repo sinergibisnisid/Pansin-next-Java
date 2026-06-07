@@ -11,7 +11,7 @@ export const reportService = {
     endDate?: string;
   }): Promise<PageResponse<AuditLog>> => {
     try {
-      const response = await apiClient.get('/reports/audit-logs', { params });
+      const response = await apiClient.get('/audit-logs', { params });
       const data = response.data.data;
       if (data?.items) return data;
       if (Array.isArray(data)) return { items: data, total: data.length, page: 0, size: data.length, totalPages: 1 };
