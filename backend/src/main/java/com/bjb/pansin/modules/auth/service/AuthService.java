@@ -6,6 +6,7 @@ import com.bjb.pansin.common.security.AppUserDetailsService;
 import com.bjb.pansin.common.security.AppUserPrincipal;
 import com.bjb.pansin.common.security.SecurityUtils;
 import com.bjb.pansin.modules.activity.service.ActivityLogService;
+import com.bjb.pansin.modules.auth.dto.ForgotPasswordRequest;
 import com.bjb.pansin.modules.auth.dto.LoginRequest;
 import com.bjb.pansin.modules.auth.dto.LoginResponse;
 import com.bjb.pansin.modules.auth.dto.OtpRequest;
@@ -29,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -154,6 +157,18 @@ public class AuthService {
         }
     }
 
+    public void forgotPassword(ForgotPasswordRequest req) {
+        userRepository.findByEmail(req.getEmail()).ifPresent(user -> {
+            String token = generateResetToken();
+            String key = "auth:password-reset:" + token;
+            redis.opsForValue().set(key, user.getId().toString(), Duration.ofMinutes(15));
+
+            String body = "Gunakan token berikut untuk reset password PANSIN ACCESS: %s. Token berlaku 15 menit.".formatted(token);
+            notificationService.send(NotificationChannel.EMAIL, user.getEmail(),
+                    "PANSIN Password Reset", body);
+        });
+    }
+
     @Transactional
     public TokenResponse verifyOtp(OtpVerifyRequest req) {
         User user = userRepository.findActiveByUsernameOrEmail(req.getIdentifier())
@@ -195,6 +210,12 @@ public class AuthService {
                 .roles(p.getRoles())
                 .permissions(p.getPermissions())
                 .build();
+    }
+
+    private String generateResetToken() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private String extractUsername(String refreshToken) {

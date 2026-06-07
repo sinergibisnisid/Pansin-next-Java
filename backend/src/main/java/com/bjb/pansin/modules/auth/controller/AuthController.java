@@ -2,6 +2,7 @@ package com.bjb.pansin.modules.auth.controller;
 
 import com.bjb.pansin.common.constants.AppConstants;
 import com.bjb.pansin.common.dto.ApiResponse;
+import com.bjb.pansin.modules.auth.dto.ForgotPasswordRequest;
 import com.bjb.pansin.modules.auth.dto.LoginRequest;
 import com.bjb.pansin.modules.auth.dto.LoginResponse;
 import com.bjb.pansin.modules.auth.dto.OtpRequest;
@@ -52,6 +53,13 @@ public class AuthController {
     @Operation(summary = "Verify OTP and issue JWT")
     public ResponseEntity<ApiResponse<TokenResponse>> verifyOtp(@Valid @RequestBody OtpVerifyRequest req) {
         return ResponseEntity.ok(ApiResponse.ok("OTP verified", authService.verifyOtp(req)));
+    }
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request password reset instructions")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        authService.forgotPassword(req);
+        return ResponseEntity.ok(ApiResponse.ok("Password reset instructions sent", null));
     }
 
     @PostMapping("/login/verify-otp")
