@@ -124,6 +124,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -167,8 +168,17 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   };
 
   const handleResendOTP = async () => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    // TODO: Implement resend OTP via backend
+    const username = getValues('username')?.trim();
+    if (!username) {
+      setError('Username wajib diisi untuk mengirim ulang OTP');
+      return;
+    }
+    try {
+      await authService.requestOtp(username);
+    } catch {
+      setError('Gagal mengirim ulang OTP');
+      throw new Error('Failed to resend OTP');
+    }
   };
 
   // Show OTP modal instead of login form
