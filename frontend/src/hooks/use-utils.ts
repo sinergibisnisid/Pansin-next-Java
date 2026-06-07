@@ -6,12 +6,14 @@ export function useCurrentTime() {
   const [time, setTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
+    const update = () => setTime(new Date());
+    const initialTimer = window.setTimeout(update, 0);
+    const timer = window.setInterval(update, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, []);
 
   return time;
@@ -22,14 +24,17 @@ export function useMediaQuery(query: string): boolean {
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    setMatches(media.matches);
+    const initialTimer = window.setTimeout(() => setMatches(media.matches), 0);
 
     const listener = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
     };
 
     media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
+    return () => {
+      window.clearTimeout(initialTimer);
+      media.removeEventListener('change', listener);
+    };
   }, [query]);
 
   return matches;

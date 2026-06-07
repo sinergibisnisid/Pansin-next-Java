@@ -10,7 +10,8 @@ export function useHydration() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setHydrated(true);
+    const timer = window.setTimeout(() => setHydrated(true), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   return hydrated;

@@ -135,7 +135,7 @@ export function WebRTCPlayer({
 
   useEffect(() => {
     if (autoPlay && streamUrl) {
-      connect();
+      void Promise.resolve().then(connect);
     }
     return () => {
       disconnect();
