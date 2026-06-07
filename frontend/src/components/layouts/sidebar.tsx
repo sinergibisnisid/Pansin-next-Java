@@ -20,6 +20,7 @@ import {
   Server,
   Settings,
   AlertTriangle,
+  KeyRound,
   ChevronLeft,
   Shield,
   X,
@@ -42,6 +43,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Server,
   Settings,
   AlertTriangle,
+  KeyRound,
 };
 
 export function Sidebar() {

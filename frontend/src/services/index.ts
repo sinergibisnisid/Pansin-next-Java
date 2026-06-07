@@ -10,5 +10,7 @@ export { reportService } from './report-service';
 export { mqttService } from './mqtt-service';
 export { alarmService } from './alarm-service';
 export { settingsService } from './settings-service';
+export { permissionService } from './permission-service';
+export { livestreamService } from './livestream-service';
 export type { MqttStatus, MqttTopicInfo } from './mqtt-service';
 export { default as apiClient } from './api-client';

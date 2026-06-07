@@ -511,3 +511,81 @@ export interface AppSetting {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface PermissionRecord {
+  id: string;
+  code: string;
+  name?: string;
+  description?: string;
+  module?: string;
+  createdAt?: string;
+}
+
+export interface BranchUtilizationResponse {
+  branches: BranchUtilizationItem[];
+  weeklyTrend: BranchUtilizationTrend[];
+  statusDistribution: BranchUtilizationStatus[];
+  summary: BranchUtilizationSummary;
+}
+
+export interface BranchUtilizationItem {
+  branchId: string;
+  branchCode: string;
+  branchName: string;
+  accessCount: number;
+  alarmCount: number;
+  averageDurationMinutes: number;
+  activeVaultCount: number;
+  totalVaultCount: number;
+  lastActivityAt?: string;
+}
+
+export interface BranchUtilizationTrend {
+  date: string;
+  accessCount: number;
+  alarmCount: number;
+}
+
+export interface BranchUtilizationStatus {
+  status: string;
+  count: number;
+}
+
+export interface BranchUtilizationSummary {
+  totalAccess: number;
+  averageDurationMinutes: number;
+  totalAlarms: number;
+  activeBranches: number;
+  totalBranches: number;
+}
+
+export interface LivestreamSession {
+  id: string;
+  vault?: {
+    id: string;
+    code: string;
+    name: string;
+    branch?: {
+      id: string;
+      code: string;
+      name: string;
+      organization?: { id: string; code: string; name: string };
+    };
+  };
+  device?: { id: string; name: string; deviceCode?: string; status?: string };
+  user?: { id: string; username: string; fullName: string };
+  streamUrl?: string;
+  status: string;
+  startedAt: string;
+  endedAt?: string;
+}
+
+export interface Snapshot {
+  id: string;
+  vault?: { id: string; code: string; name: string };
+  device?: { id: string; name: string };
+  fileSize?: number;
+  mimeType?: string;
+  trigger?: string;
+  createdAt: string;
+}
