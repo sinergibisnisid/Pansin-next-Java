@@ -12,15 +12,38 @@ import { generateId } from '@/lib/utils';
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const shouldReconnectRef = useRef(true);
 
-  const { setStatus, setReconnectAttempts, setLastConnected, setError, reconnectAttempts } =
-    useWebSocketStore();
+  const { setStatus, setReconnectAttempts, setLastConnected, setError } = useWebSocketStore();
   const { updateVaultStatus, addAlarm } = useMonitoringStore();
   const { addNotification } = useNotificationStore();
 
-  const connect = useCallback(() => {
-    if (socketRef.current?.connected) return;
+  const connectRef = useRef<() => void>(() => {});
 
+  const attemptReconnect = useCallback(() => {
+    if (!shouldReconnectRef.current) return;
+
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      setError('Max reconnection attempts reached');
+      return;
+    }
+
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      if (!shouldReconnectRef.current) return;
+
+      reconnectAttemptsRef.current += 1;
+      setReconnectAttempts(reconnectAttemptsRef.current);
+      connectRef.current();
+    }, RECONNECT_INTERVAL);
+  }, [setReconnectAttempts, setError]);
+
+  const connect = useCallback(() => {
+    if (socketRef.current?.connected || socketRef.current?.active) return;
+
+    shouldReconnectRef.current = true;
     setStatus('connecting');
 
     const socket = io(WS_URL, {
@@ -30,6 +53,7 @@ export function useSocket() {
     });
 
     socket.on('connect', () => {
+      reconnectAttemptsRef.current = 0;
       setStatus('connected');
       setLastConnected(new Date().toISOString());
       setReconnectAttempts(0);
@@ -38,21 +62,26 @@ export function useSocket() {
 
     socket.on('disconnect', () => {
       setStatus('disconnected');
+      socket.removeAllListeners();
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
       attemptReconnect();
     });
 
     socket.on('connect_error', (error) => {
       setStatus('error');
       setError(error.message);
+      socket.removeAllListeners();
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+      socket.disconnect();
       attemptReconnect();
     });
 
-    // Vault status updates
-    socket.on('vault:status', (data: VaultStatusUpdate) => {
-      updateVaultStatus(data);
-    });
+    socket.on('vault:status', (data: VaultStatusUpdate) => updateVaultStatus(data));
 
-    // Alarm events
     socket.on('alarm:triggered', (data: AlarmEvent) => {
       addAlarm(data);
       addNotification({
@@ -66,55 +95,41 @@ export function useSocket() {
       });
     });
 
-    // Notification events
-    socket.on('notification', (data: Notification) => {
-      addNotification(data);
-    });
+    socket.on('notification', (data: Notification) => addNotification(data));
 
     socketRef.current = socket;
-  }, [setStatus, setLastConnected, setReconnectAttempts, setError, updateVaultStatus, addAlarm, addNotification]);
+  }, [setStatus, setLastConnected, setReconnectAttempts, setError, updateVaultStatus, addAlarm, addNotification, attemptReconnect]);
 
-  const attemptReconnect = useCallback(() => {
-    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-      setError('Max reconnection attempts reached');
-      return;
-    }
-
-    reconnectTimerRef.current = setTimeout(() => {
-      setReconnectAttempts(reconnectAttempts + 1);
-      connect();
-    }, RECONNECT_INTERVAL);
-  }, [reconnectAttempts, setReconnectAttempts, setError, connect]);
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-    }
+    shouldReconnectRef.current = false;
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = null;
+    reconnectAttemptsRef.current = 0;
+    setReconnectAttempts(0);
     if (socketRef.current) {
+      socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
       socketRef.current = null;
     }
     setStatus('disconnected');
-  }, [setStatus]);
+  }, [setStatus, setReconnectAttempts]);
 
   const emit = useCallback((event: string, data?: unknown) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(event, data);
-    }
+    socketRef.current?.emit(event, data);
   }, []);
 
   const on = useCallback((event: string, handler: (...args: unknown[]) => void) => {
     socketRef.current?.on(event, handler);
-    return () => {
-      socketRef.current?.off(event, handler);
-    };
+    return () => socketRef.current?.off(event, handler);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, [disconnect]);
+  const getSocket = useCallback(() => socketRef.current, []);
 
-  return { connect, disconnect, emit, on, socket: socketRef.current };
+  useEffect(() => () => disconnect(), [disconnect]);
+
+  return { connect, disconnect, emit, on, getSocket };
 }

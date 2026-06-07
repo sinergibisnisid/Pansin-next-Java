@@ -4,6 +4,13 @@ import { useWebSocketStore } from '@/stores/websocket-store';
 import { useNotificationStore } from '@/stores/notification-store';
 import type { VaultStatusUpdate, AlarmEvent, Notification } from '@/types';
 
+type DeviceUpdate = {
+  deviceId: string;
+  status?: string;
+  message?: string;
+  timestamp?: string;
+};
+
 class WebSocketService {
   private client: Client | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
@@ -88,7 +95,7 @@ class WebSocketService {
     useNotificationStore.getState().addNotification(notification);
   }
 
-  private handleDeviceUpdate(data: any) {
+  private handleDeviceUpdate(data: DeviceUpdate) {
     console.log('[WebSocket] Device update:', data);
     
     const notification: Notification = {
