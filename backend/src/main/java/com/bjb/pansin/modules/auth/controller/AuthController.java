@@ -62,6 +62,12 @@ public class AuthController {
                 loginOtpService.verifyLoginOtp(req, clientIp(http))));
     }
 
+    @GetMapping("/profile")
+    @Operation(summary = "Get current authenticated user profile")
+    public ResponseEntity<ApiResponse<TokenResponse.UserInfo>> profile() {
+        return ResponseEntity.ok(ApiResponse.ok(authService.getProfile()));
+    }
+
     @PostMapping("/logout")
     @Operation(summary = "Revoke refresh token & blacklist access token")
     public ResponseEntity<ApiResponse<Void>> logout(@RequestBody(required = false) RefreshTokenRequest req,

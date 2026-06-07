@@ -4,6 +4,7 @@ import com.bjb.pansin.common.exceptions.BusinessException;
 import com.bjb.pansin.common.exceptions.UnauthorizedException;
 import com.bjb.pansin.common.security.AppUserDetailsService;
 import com.bjb.pansin.common.security.AppUserPrincipal;
+import com.bjb.pansin.common.security.SecurityUtils;
 import com.bjb.pansin.modules.activity.service.ActivityLogService;
 import com.bjb.pansin.modules.auth.dto.LoginRequest;
 import com.bjb.pansin.modules.auth.dto.LoginResponse;
@@ -128,6 +129,13 @@ public class AuthService {
         if (refreshToken != null) tokenService.revoke(refreshToken);
         if (accessToken != null) tokenService.blacklistAccess(accessToken);
         activityLogService.log("LOGOUT", "User logged out", null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenResponse.UserInfo getProfile() {
+        AppUserPrincipal principal = SecurityUtils.getCurrentPrincipal()
+                .orElseThrow(() -> new UnauthorizedException("Unauthenticated"));
+        return toUserInfo(principal);
     }
 
     public void requestOtp(OtpRequest req) {
