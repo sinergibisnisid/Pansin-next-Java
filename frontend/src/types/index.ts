@@ -442,3 +442,72 @@ export interface AlarmEvent {
   message: string;
   timestamp: string;
 }
+
+export interface AlarmLog {
+  id: string;
+  vault?: {
+    id: string;
+    name: string;
+    code?: string;
+    branch?: { id: string; name: string; code: string };
+  };
+  device?: { id: string; name: string; deviceCode?: string };
+  type: string;
+  severity: string;
+  message: string;
+  acknowledged: boolean;
+  acknowledgedBy?: { id: string; username: string; fullName: string };
+  acknowledgedAt?: string;
+  createdAt: string;
+}
+
+export interface BranchActivityData {
+  branchId: string;
+  branchCode: string;
+  branchName: string;
+  accessCount: number;
+  alarmCount: number;
+}
+
+export interface VaultStatusSummaryData {
+  status: string;
+  count: number;
+}
+
+export interface RealtimeStatsData {
+  timestamp: string;
+  time: string;
+  events: number;
+  alarms: number;
+}
+
+export interface ServerMetricData {
+  timestamp: string;
+  cpuUsage: number;
+  memoryUsage: number;
+  diskUsage: number;
+  mqttConnected: boolean;
+  websocketSessions: number;
+  queueSize?: number;
+}
+
+export interface ServerHealthData {
+  status: string;
+  cpuUsage?: number;
+  memoryUsage?: number;
+  diskUsage?: number;
+  mqttConnected: boolean;
+  websocketSessions: number;
+  lastCheckedAt?: string;
+  services: { name: string; status: string; description?: string }[];
+}
+
+export interface AppSetting {
+  id?: string;
+  key: string;
+  value: Record<string, unknown>;
+  description?: string;
+  publicSetting: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

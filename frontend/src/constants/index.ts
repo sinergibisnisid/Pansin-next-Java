@@ -112,6 +112,7 @@ export const SIDEBAR_MENU = [
     group: 'Operations',
     items: [
       { label: 'Reports', href: '/reports', icon: 'FileText', permission: 'reports.view' as const },
+      { label: 'Alarms', href: '/alarms', icon: 'AlertTriangle', permission: 'monitoring.view' as const },
       { label: 'Maintenance', href: '/maintenance', icon: 'Wrench', permission: 'maintenance.view' as const },
       { label: 'Notifications', href: '/notifications', icon: 'Bell', permission: 'notifications.view' as const },
     ],
