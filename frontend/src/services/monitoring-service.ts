@@ -9,6 +9,7 @@ import type {
   RealtimeStatsData,
   ServerMetricData,
   ServerHealthData,
+  BranchUtilizationResponse,
 } from '@/types';
 
 export const monitoringService = {
@@ -72,6 +73,11 @@ export const monitoringService = {
     const response = await apiClient.get('/monitoring/branch-activity', { params });
     const data = response.data.data;
     return Array.isArray(data) ? data : [];
+  },
+
+  getBranchUtilization: async (params?: { from?: string; to?: string; days?: number; limit?: number }): Promise<BranchUtilizationResponse> => {
+    const response = await apiClient.get('/monitoring/branch-utilization', { params });
+    return response.data.data;
   },
 
   getVaultStatusSummary: async (): Promise<VaultStatusSummaryData[]> => {

@@ -11,6 +11,7 @@ import com.bjb.pansin.modules.branch.entity.Branch;
 import com.bjb.pansin.modules.branch.repository.BranchRepository;
 import com.bjb.pansin.modules.device.repository.DeviceRepository;
 import com.bjb.pansin.modules.monitoring.dto.BranchActivityDto;
+import com.bjb.pansin.modules.monitoring.dto.BranchUtilizationResponse;
 import com.bjb.pansin.modules.monitoring.dto.DashboardStatsDto;
 import com.bjb.pansin.modules.monitoring.dto.RealtimeStatsDto;
 import com.bjb.pansin.modules.monitoring.dto.ServerHealthDto;
@@ -22,8 +23,10 @@ import com.bjb.pansin.modules.monitoring.repository.ServerMonitoringRepository;
 import com.bjb.pansin.modules.user.repository.UserRepository;
 import com.bjb.pansin.modules.vault.entity.Vault;
 import com.bjb.pansin.modules.vault.entity.VaultAccessLog;
+import com.bjb.pansin.modules.vault.entity.VaultSession;
 import com.bjb.pansin.modules.vault.repository.VaultAccessLogRepository;
 import com.bjb.pansin.modules.vault.repository.VaultRepository;
+import com.bjb.pansin.modules.vault.repository.VaultSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -57,6 +61,7 @@ public class MonitoringService {
     private final ActivityLogRepository activityLogRepository;
     private final AlarmLogRepository alarmLogRepository;
     private final VaultAccessLogRepository vaultAccessLogRepository;
+    private final VaultSessionRepository vaultSessionRepository;
     private final ServerMonitoringRepository serverMonitoringRepository;
 
     public DashboardStatsDto getDashboardStats() {
@@ -255,6 +260,119 @@ public class MonitoringService {
                         .websocketSessions(0)
                         .services(List.of())
                         .build());
+    }
+
+    public BranchUtilizationResponse getBranchUtilization(Instant from, Instant to, Integer days, int limit) {
+        Instant end = to != null ? to : Instant.now();
+        Instant start = from != null ? from : end.minus(days != null ? Math.max(1, days) : 7, ChronoUnit.DAYS);
+        ZoneId zone = ZoneId.systemDefault();
+
+        List<VaultAccessLog> accessLogs = vaultAccessLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .filter(log -> !log.getCreatedAt().isBefore(start) && !log.getCreatedAt().isAfter(end))
+                .toList();
+        List<AlarmLog> alarmLogs = alarmLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .filter(log -> !log.getCreatedAt().isBefore(start) && !log.getCreatedAt().isAfter(end))
+                .toList();
+        List<VaultSession> sessions = vaultSessionRepository.findAll().stream()
+                .filter(session -> session.getOpenedAt() != null)
+                .filter(session -> !session.getOpenedAt().isBefore(start) && !session.getOpenedAt().isAfter(end))
+                .toList();
+        List<Vault> vaults = vaultRepository.findAll();
+
+        Map<UUID, Long> accessByBranch = accessLogs.stream()
+                .filter(log -> log.getVault() != null && log.getVault().getBranch() != null)
+                .collect(Collectors.groupingBy(log -> log.getVault().getBranch().getId(), Collectors.counting()));
+        Map<UUID, Long> alarmByBranch = alarmLogs.stream()
+                .filter(log -> log.getVault() != null && log.getVault().getBranch() != null)
+                .collect(Collectors.groupingBy(log -> log.getVault().getBranch().getId(), Collectors.counting()));
+        Map<UUID, Double> avgDurationByBranch = sessions.stream()
+                .filter(session -> session.getVault() != null && session.getVault().getBranch() != null && session.getDurationSeconds() != null)
+                .collect(Collectors.groupingBy(
+                        session -> session.getVault().getBranch().getId(),
+                        Collectors.averagingDouble(session -> session.getDurationSeconds() / 60.0)
+                ));
+        Map<UUID, Long> totalVaultByBranch = vaults.stream()
+                .filter(vault -> vault.getBranch() != null)
+                .collect(Collectors.groupingBy(vault -> vault.getBranch().getId(), Collectors.counting()));
+        Map<UUID, Long> activeVaultByBranch = vaults.stream()
+                .filter(vault -> vault.getBranch() != null && vault.isActive())
+                .collect(Collectors.groupingBy(vault -> vault.getBranch().getId(), Collectors.counting()));
+        Map<UUID, Instant> lastActivityByBranch = accessLogs.stream()
+                .filter(log -> log.getVault() != null && log.getVault().getBranch() != null)
+                .collect(Collectors.groupingBy(
+                        log -> log.getVault().getBranch().getId(),
+                        Collectors.mapping(VaultAccessLog::getCreatedAt, Collectors.maxBy(Comparator.naturalOrder()))
+                )).entrySet().stream()
+                .filter(entry -> entry.getValue().isPresent())
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().orElse(null)));
+
+        List<BranchUtilizationResponse.BranchUtilizationItem> branches = branchRepository.findAll().stream()
+                .map(branch -> BranchUtilizationResponse.BranchUtilizationItem.builder()
+                        .branchId(branch.getId())
+                        .branchCode(branch.getCode())
+                        .branchName(branch.getName())
+                        .accessCount(accessByBranch.getOrDefault(branch.getId(), 0L))
+                        .alarmCount(alarmByBranch.getOrDefault(branch.getId(), 0L))
+                        .averageDurationMinutes(round(avgDurationByBranch.getOrDefault(branch.getId(), 0.0)))
+                        .activeVaultCount(activeVaultByBranch.getOrDefault(branch.getId(), 0L))
+                        .totalVaultCount(totalVaultByBranch.getOrDefault(branch.getId(), 0L))
+                        .lastActivityAt(lastActivityByBranch.get(branch.getId()))
+                        .build())
+                .sorted(Comparator.comparingLong(BranchUtilizationResponse.BranchUtilizationItem::getAccessCount).reversed())
+                .limit(Math.max(1, limit))
+                .toList();
+
+        Map<LocalDate, Long> accessTrend = accessLogs.stream()
+                .collect(Collectors.groupingBy(log -> log.getCreatedAt().atZone(zone).toLocalDate(), Collectors.counting()));
+        Map<LocalDate, Long> alarmTrend = alarmLogs.stream()
+                .collect(Collectors.groupingBy(log -> log.getCreatedAt().atZone(zone).toLocalDate(), Collectors.counting()));
+        LocalDate startDate = start.atZone(zone).toLocalDate();
+        LocalDate endDate = end.atZone(zone).toLocalDate();
+        List<BranchUtilizationResponse.BranchUtilizationTrend> weeklyTrend = new ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            weeklyTrend.add(BranchUtilizationResponse.BranchUtilizationTrend.builder()
+                    .date(date)
+                    .accessCount(accessTrend.getOrDefault(date, 0L))
+                    .alarmCount(alarmTrend.getOrDefault(date, 0L))
+                    .build());
+        }
+
+        List<BranchUtilizationResponse.BranchUtilizationStatus> statusDistribution = vaults.stream()
+                .collect(Collectors.groupingBy(vault -> vault.getStatus() != null ? vault.getStatus().name() : "UNKNOWN", Collectors.counting()))
+                .entrySet().stream()
+                .map(entry -> BranchUtilizationResponse.BranchUtilizationStatus.builder()
+                        .status(entry.getKey())
+                        .count(entry.getValue())
+                        .build())
+                .sorted(Comparator.comparing(BranchUtilizationResponse.BranchUtilizationStatus::getStatus))
+                .toList();
+
+        long totalAccess = accessLogs.size();
+        long totalAlarms = alarmLogs.size();
+        double avgDuration = round(sessions.stream()
+                .filter(session -> session.getDurationSeconds() != null)
+                .mapToDouble(session -> session.getDurationSeconds() / 60.0)
+                .average().orElse(0));
+        long activeBranches = branches.stream().filter(branch -> branch.getAccessCount() > 0 || branch.getActiveVaultCount() > 0).count();
+
+        return BranchUtilizationResponse.builder()
+                .branches(branches)
+                .weeklyTrend(weeklyTrend)
+                .statusDistribution(statusDistribution)
+                .summary(BranchUtilizationResponse.BranchUtilizationSummary.builder()
+                        .totalAccess(totalAccess)
+                        .averageDurationMinutes(avgDuration)
+                        .totalAlarms(totalAlarms)
+                        .activeBranches(activeBranches)
+                        .totalBranches(branchRepository.count())
+                        .build())
+                .build();
+    }
+
+    private double round(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private ServerMetricDto mapServerMetric(ServerMonitoring metric) {

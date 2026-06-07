@@ -3,6 +3,7 @@ package com.bjb.pansin.modules.monitoring.controller;
 import com.bjb.pansin.common.constants.AppConstants;
 import com.bjb.pansin.common.dto.ApiResponse;
 import com.bjb.pansin.modules.monitoring.dto.BranchActivityDto;
+import com.bjb.pansin.modules.monitoring.dto.BranchUtilizationResponse;
 import com.bjb.pansin.modules.monitoring.dto.DashboardStatsDto;
 import com.bjb.pansin.modules.monitoring.dto.RealtimeStatsDto;
 import com.bjb.pansin.modules.monitoring.dto.ServerHealthDto;
@@ -64,6 +65,16 @@ public class MonitoringController {
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(ApiResponse.ok("Branch activity retrieved",
                 monitoringService.getBranchActivity(from, to, limit)));
+    }
+
+    @GetMapping("/branch-utilization")
+    public ResponseEntity<ApiResponse<BranchUtilizationResponse>> getBranchUtilization(
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) Integer days,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(ApiResponse.ok("Branch utilization retrieved",
+                monitoringService.getBranchUtilization(from, to, days, limit)));
     }
 
     @GetMapping("/vault-status-summary")
