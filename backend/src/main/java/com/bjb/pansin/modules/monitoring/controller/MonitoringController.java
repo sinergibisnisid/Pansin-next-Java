@@ -2,8 +2,13 @@ package com.bjb.pansin.modules.monitoring.controller;
 
 import com.bjb.pansin.common.constants.AppConstants;
 import com.bjb.pansin.common.dto.ApiResponse;
+import com.bjb.pansin.modules.monitoring.dto.BranchActivityDto;
 import com.bjb.pansin.modules.monitoring.dto.DashboardStatsDto;
+import com.bjb.pansin.modules.monitoring.dto.RealtimeStatsDto;
+import com.bjb.pansin.modules.monitoring.dto.ServerHealthDto;
+import com.bjb.pansin.modules.monitoring.dto.ServerMetricDto;
 import com.bjb.pansin.modules.monitoring.dto.VaultMonitorDto;
+import com.bjb.pansin.modules.monitoring.dto.VaultStatusSummaryDto;
 import com.bjb.pansin.modules.monitoring.service.MonitoringService;
 import com.bjb.pansin.modules.activity.entity.ActivityLog;
 import com.bjb.pansin.modules.activity.repository.ActivityLogRepository;
@@ -16,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -49,6 +55,43 @@ public class MonitoringController {
         log.info("GET /monitoring/vaults/{} called", id);
         VaultMonitorDto vault = monitoringService.getVaultMonitorById(id);
         return ResponseEntity.ok(ApiResponse.ok("Vault retrieved", vault));
+    }
+
+    @GetMapping("/branch-activity")
+    public ResponseEntity<ApiResponse<List<BranchActivityDto>>> getBranchActivity(
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ApiResponse.ok("Branch activity retrieved",
+                monitoringService.getBranchActivity(from, to, limit)));
+    }
+
+    @GetMapping("/vault-status-summary")
+    public ResponseEntity<ApiResponse<List<VaultStatusSummaryDto>>> getVaultStatusSummary() {
+        return ResponseEntity.ok(ApiResponse.ok("Vault status summary retrieved",
+                monitoringService.getVaultStatusSummary()));
+    }
+
+    @GetMapping("/realtime-stats")
+    public ResponseEntity<ApiResponse<List<RealtimeStatsDto>>> getRealtimeStats(
+            @RequestParam(defaultValue = "24") int hours) {
+        return ResponseEntity.ok(ApiResponse.ok("Realtime stats retrieved",
+                monitoringService.getRealtimeStats(hours)));
+    }
+
+    @GetMapping("/server-metrics")
+    public ResponseEntity<ApiResponse<List<ServerMetricDto>>> getServerMetrics(
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(defaultValue = "60") int limit) {
+        return ResponseEntity.ok(ApiResponse.ok("Server metrics retrieved",
+                monitoringService.getServerMetrics(from, to, limit)));
+    }
+
+    @GetMapping("/server-health")
+    public ResponseEntity<ApiResponse<ServerHealthDto>> getServerHealth() {
+        return ResponseEntity.ok(ApiResponse.ok("Server health retrieved",
+                monitoringService.getServerHealth()));
     }
 
     @GetMapping("/activities")

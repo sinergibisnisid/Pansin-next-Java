@@ -3,25 +3,45 @@ package com.bjb.pansin.modules.monitoring.service;
 import com.bjb.pansin.common.enums.DeviceStatus;
 import com.bjb.pansin.common.enums.VaultStatus;
 import com.bjb.pansin.common.exceptions.ResourceNotFoundException;
+import com.bjb.pansin.modules.activity.entity.ActivityLog;
 import com.bjb.pansin.modules.activity.repository.ActivityLogRepository;
+import com.bjb.pansin.modules.alarm.entity.AlarmLog;
 import com.bjb.pansin.modules.alarm.repository.AlarmLogRepository;
 import com.bjb.pansin.modules.branch.entity.Branch;
 import com.bjb.pansin.modules.branch.repository.BranchRepository;
 import com.bjb.pansin.modules.device.repository.DeviceRepository;
+import com.bjb.pansin.modules.monitoring.dto.BranchActivityDto;
 import com.bjb.pansin.modules.monitoring.dto.DashboardStatsDto;
+import com.bjb.pansin.modules.monitoring.dto.RealtimeStatsDto;
+import com.bjb.pansin.modules.monitoring.dto.ServerHealthDto;
+import com.bjb.pansin.modules.monitoring.dto.ServerMetricDto;
 import com.bjb.pansin.modules.monitoring.dto.VaultMonitorDto;
+import com.bjb.pansin.modules.monitoring.dto.VaultStatusSummaryDto;
+import com.bjb.pansin.modules.monitoring.entity.ServerMonitoring;
+import com.bjb.pansin.modules.monitoring.repository.ServerMonitoringRepository;
 import com.bjb.pansin.modules.user.repository.UserRepository;
 import com.bjb.pansin.modules.vault.entity.Vault;
+import com.bjb.pansin.modules.vault.entity.VaultAccessLog;
+import com.bjb.pansin.modules.vault.repository.VaultAccessLogRepository;
 import com.bjb.pansin.modules.vault.repository.VaultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,6 +56,8 @@ public class MonitoringService {
     private final UserRepository userRepository;
     private final ActivityLogRepository activityLogRepository;
     private final AlarmLogRepository alarmLogRepository;
+    private final VaultAccessLogRepository vaultAccessLogRepository;
+    private final ServerMonitoringRepository serverMonitoringRepository;
 
     public DashboardStatsDto getDashboardStats() {
         log.debug("Getting dashboard stats");
@@ -118,6 +140,133 @@ public class MonitoringService {
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("Invalid vault ID: " + id);
         }
+    }
+
+    public List<BranchActivityDto> getBranchActivity(Instant from, Instant to, int limit) {
+        Instant end = to != null ? to : Instant.now();
+        Instant start = from != null ? from : end.minus(7, ChronoUnit.DAYS);
+
+        List<VaultAccessLog> accessLogs = vaultAccessLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .filter(log -> !log.getCreatedAt().isBefore(start) && !log.getCreatedAt().isAfter(end))
+                .toList();
+        List<AlarmLog> alarmLogs = alarmLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .filter(log -> !log.getCreatedAt().isBefore(start) && !log.getCreatedAt().isAfter(end))
+                .toList();
+
+        Map<UUID, Long> accessByBranch = accessLogs.stream()
+                .filter(log -> log.getVault() != null && log.getVault().getBranch() != null)
+                .collect(Collectors.groupingBy(log -> log.getVault().getBranch().getId(), Collectors.counting()));
+        Map<UUID, Long> alarmsByBranch = alarmLogs.stream()
+                .filter(log -> log.getVault() != null && log.getVault().getBranch() != null)
+                .collect(Collectors.groupingBy(log -> log.getVault().getBranch().getId(), Collectors.counting()));
+
+        return branchRepository.findAll().stream()
+                .map(branch -> BranchActivityDto.builder()
+                        .branchId(branch.getId())
+                        .branchCode(branch.getCode())
+                        .branchName(branch.getName())
+                        .accessCount(accessByBranch.getOrDefault(branch.getId(), 0L))
+                        .alarmCount(alarmsByBranch.getOrDefault(branch.getId(), 0L))
+                        .build())
+                .sorted(Comparator.comparingLong(BranchActivityDto::getAccessCount).reversed())
+                .limit(Math.max(1, limit))
+                .toList();
+    }
+
+    public List<VaultStatusSummaryDto> getVaultStatusSummary() {
+        Map<String, Long> counts = vaultRepository.findAll().stream()
+                .collect(Collectors.groupingBy(v -> v.getStatus() != null ? v.getStatus().name() : "UNKNOWN", Collectors.counting()));
+        return counts.entrySet().stream()
+                .map(entry -> VaultStatusSummaryDto.builder()
+                        .status(entry.getKey())
+                        .count(entry.getValue())
+                        .build())
+                .sorted(Comparator.comparing(VaultStatusSummaryDto::getStatus))
+                .toList();
+    }
+
+    public List<RealtimeStatsDto> getRealtimeStats(int hours) {
+        int rangeHours = Math.max(1, Math.min(hours, 168));
+        Instant end = Instant.now().truncatedTo(ChronoUnit.HOURS);
+        Instant start = end.minus(rangeHours - 1L, ChronoUnit.HOURS);
+        ZoneId zone = ZoneId.systemDefault();
+
+        Map<Instant, Long> eventsByHour = activityLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .map(ActivityLog::getCreatedAt)
+                .map(ts -> ts.truncatedTo(ChronoUnit.HOURS))
+                .filter(ts -> !ts.isBefore(start) && !ts.isAfter(end))
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        Map<Instant, Long> alarmsByHour = alarmLogRepository.findAll().stream()
+                .filter(log -> log.getCreatedAt() != null)
+                .map(AlarmLog::getCreatedAt)
+                .map(ts -> ts.truncatedTo(ChronoUnit.HOURS))
+                .filter(ts -> !ts.isBefore(start) && !ts.isAfter(end))
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        List<RealtimeStatsDto> data = new ArrayList<>();
+        for (int i = 0; i < rangeHours; i++) {
+            Instant bucket = start.plus(i, ChronoUnit.HOURS);
+            data.add(RealtimeStatsDto.builder()
+                    .timestamp(bucket)
+                    .time(java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(bucket.atZone(zone)))
+                    .events(eventsByHour.getOrDefault(bucket, 0L))
+                    .alarms(alarmsByHour.getOrDefault(bucket, 0L))
+                    .build());
+        }
+        return data;
+    }
+
+    public List<ServerMetricDto> getServerMetrics(Instant from, Instant to, int limit) {
+        List<ServerMonitoring> metrics;
+        if (from != null && to != null) {
+            metrics = serverMonitoringRepository.findByCreatedAtBetweenOrderByCreatedAtAsc(from, to);
+        } else {
+            metrics = serverMonitoringRepository.findByOrderByCreatedAtDesc(
+                    PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt")))
+                    .stream()
+                    .sorted(Comparator.comparing(ServerMonitoring::getCreatedAt))
+                    .toList();
+        }
+        return metrics.stream().map(this::mapServerMetric).toList();
+    }
+
+    public ServerHealthDto getServerHealth() {
+        return serverMonitoringRepository.findTopByOrderByCreatedAtDesc()
+                .map(metric -> ServerHealthDto.builder()
+                        .status(Boolean.FALSE.equals(metric.getMqttConnected()) ? "DEGRADED" : "UP")
+                        .cpuUsage(metric.getCpuLoad())
+                        .memoryUsage(metric.getMemoryLoad())
+                        .diskUsage(metric.getDiskLoad())
+                        .mqttConnected(metric.getMqttConnected())
+                        .websocketSessions(metric.getWebsocketCount())
+                        .lastCheckedAt(metric.getCreatedAt())
+                        .services(List.of(
+                                ServerHealthDto.ServiceStatusDto.builder().name("Backend API").status("UP").description("Spring Boot API").build(),
+                                ServerHealthDto.ServiceStatusDto.builder().name("MQTT Broker").status(Boolean.TRUE.equals(metric.getMqttConnected()) ? "UP" : "DOWN").description("MQTT connection").build(),
+                                ServerHealthDto.ServiceStatusDto.builder().name("WebSocket").status("UP").description((metric.getWebsocketCount() != null ? metric.getWebsocketCount() : 0) + " active sessions").build()
+                        ))
+                        .build())
+                .orElse(ServerHealthDto.builder()
+                        .status("UNKNOWN")
+                        .mqttConnected(false)
+                        .websocketSessions(0)
+                        .services(List.of())
+                        .build());
+    }
+
+    private ServerMetricDto mapServerMetric(ServerMonitoring metric) {
+        return ServerMetricDto.builder()
+                .timestamp(metric.getCreatedAt())
+                .cpuUsage(metric.getCpuLoad())
+                .memoryUsage(metric.getMemoryLoad())
+                .diskUsage(metric.getDiskLoad())
+                .mqttConnected(metric.getMqttConnected())
+                .websocketSessions(metric.getWebsocketCount())
+                .queueSize(metric.getQueueSize())
+                .build();
     }
 
     private VaultMonitorDto mapVaultToMonitorDto(Vault vault) {

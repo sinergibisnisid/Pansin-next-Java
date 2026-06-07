@@ -4,6 +4,11 @@ import type {
   DashboardStats,
   ActivityEvent,
   PageResponse,
+  BranchActivityData,
+  VaultStatusSummaryData,
+  RealtimeStatsData,
+  ServerMetricData,
+  ServerHealthData,
 } from '@/types';
 
 export const monitoringService = {
@@ -61,5 +66,34 @@ export const monitoringService = {
     } catch {
       return { items: [], total: 0, page, size: pageSize, totalPages: 0 };
     }
+  },
+
+  getBranchActivity: async (params?: { from?: string; to?: string; limit?: number }): Promise<BranchActivityData[]> => {
+    const response = await apiClient.get('/monitoring/branch-activity', { params });
+    const data = response.data.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getVaultStatusSummary: async (): Promise<VaultStatusSummaryData[]> => {
+    const response = await apiClient.get('/monitoring/vault-status-summary');
+    const data = response.data.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getRealtimeStats: async (params?: { hours?: number }): Promise<RealtimeStatsData[]> => {
+    const response = await apiClient.get('/monitoring/realtime-stats', { params });
+    const data = response.data.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getServerMetrics: async (params?: { from?: string; to?: string; limit?: number }): Promise<ServerMetricData[]> => {
+    const response = await apiClient.get('/monitoring/server-metrics', { params });
+    const data = response.data.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getServerHealth: async (): Promise<ServerHealthData> => {
+    const response = await apiClient.get('/monitoring/server-health');
+    return response.data.data;
   },
 };
