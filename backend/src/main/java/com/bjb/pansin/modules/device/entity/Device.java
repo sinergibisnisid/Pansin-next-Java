@@ -58,6 +58,10 @@ public class Device extends BaseEntity {
     @Column(name = "last_heartbeat")
     private Instant lastHeartbeat;
 
+    @Column(name = "lifecycle_state", nullable = false, length = 40)
+    @Builder.Default
+    private String lifecycleState = "MANUFACTURED";
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
