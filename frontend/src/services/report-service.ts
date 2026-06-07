@@ -1,15 +1,17 @@
 import apiClient from './api-client';
 import type { AuditLog, PageResponse } from '@/types';
 
+type ReportParams = {
+  page?: number;
+  size?: number;
+  category?: string;
+  severity?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
 export const reportService = {
-  getLogs: async (params?: {
-    page?: number;
-    size?: number;
-    category?: string;
-    severity?: string;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<PageResponse<AuditLog>> => {
+  getLogs: async (params?: ReportParams): Promise<PageResponse<AuditLog>> => {
     try {
       const response = await apiClient.get('/audit-logs', { params });
       const data = response.data.data;
@@ -21,17 +23,17 @@ export const reportService = {
     }
   },
 
-  exportCSV: async (params: any) => {
+  exportCSV: async (params: ReportParams): Promise<Blob> => {
     const response = await apiClient.get('/reports/export/csv', { params, responseType: 'blob' });
     return response.data;
   },
 
-  exportExcel: async (params: any) => {
+  exportExcel: async (params: ReportParams): Promise<Blob> => {
     const response = await apiClient.get('/reports/export/excel', { params, responseType: 'blob' });
     return response.data;
   },
 
-  exportPDF: async (params: any) => {
+  exportPDF: async (params: ReportParams): Promise<Blob> => {
     const response = await apiClient.get('/reports/export/pdf', { params, responseType: 'blob' });
     return response.data;
   },

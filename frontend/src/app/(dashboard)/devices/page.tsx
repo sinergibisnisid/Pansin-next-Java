@@ -22,6 +22,14 @@ const statusColors: Record<string, string> = {
   DECOMMISSIONED: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? fallback;
+  }
+  return fallback;
+}
+
 const createColumns = (
   onEdit: (device: Device) => void,
   onDelete: (id: string) => void
@@ -182,8 +190,8 @@ export default function DevicesPage() {
       fetchDevices();
       setIsAddDialogOpen(false);
       setFormData({ branchId: '', vaultId: '', deviceCode: '', name: '', type: 'CONTROLLER', ipAddress: '', macAddress: '', firmwareVersion: '' });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create device');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to create device'));
       console.error('Failed to create device:', error);
     } finally {
       setIsSubmitting(false);
@@ -213,8 +221,8 @@ export default function DevicesPage() {
       fetchDevices();
       setIsEditDialogOpen(false);
       setEditingDevice(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update device');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to update device'));
       console.error('Failed to update device:', error);
     } finally {
       setIsSubmitting(false);
@@ -227,14 +235,14 @@ export default function DevicesPage() {
       await deviceService.delete(deleteDeviceId);
       fetchDevices();
       setDeleteDeviceId(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete device');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to delete device'));
       console.error('Failed to delete device:', error);
     }
   };
 
   useEffect(() => {
-    fetchDevices();
+    void Promise.resolve().then(fetchDevices);
   }, []);
 
   const onlineCount = devices.filter((d) => d.status === 'ONLINE').length;

@@ -74,8 +74,8 @@ export function OTPModal({ open, method, onVerify, onResend, onClose }: OTPModal
 
     try {
       await onVerify(code);
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP code');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP code');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {

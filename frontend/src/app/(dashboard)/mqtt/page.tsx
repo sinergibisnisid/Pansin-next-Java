@@ -40,7 +40,7 @@ export default function MQTTPage() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    void Promise.resolve().then(fetchStatus);
   }, []);
 
   const handleConnectionTest = async () => {

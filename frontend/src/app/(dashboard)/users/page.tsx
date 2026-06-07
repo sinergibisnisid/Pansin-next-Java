@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, UserPlus, Shield, Mail, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
@@ -139,6 +139,17 @@ const createColumns = (
   },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? fallback;
+  }
+
+  if (error instanceof Error) return error.message;
+
+  return fallback;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
@@ -167,7 +178,7 @@ export default function UsersPage() {
   });
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await userService.getAll({ page, size: pageSize });
@@ -179,7 +190,7 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   const handleSubmit = async () => {
     if (!formData.fullName || !formData.username || !formData.email || !formData.password) return;
@@ -189,8 +200,8 @@ export default function UsersPage() {
       fetchUsers();
       setIsAddDialogOpen(false);
       setFormData({ fullName: '', username: '', email: '', password: '', roleCodes: ['OPERATOR'] });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create user');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to create user'));
       console.error('Failed to create user:', error);
     } finally {
       setIsSubmitting(false);
@@ -219,8 +230,8 @@ export default function UsersPage() {
       fetchUsers();
       setIsEditDialogOpen(false);
       setEditingUser(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update user');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to update user'));
       console.error('Failed to update user:', error);
     } finally {
       setIsSubmitting(false);
@@ -233,15 +244,15 @@ export default function UsersPage() {
       await userService.delete(deleteUserId);
       fetchUsers();
       setDeleteUserId(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete user');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to delete user'));
       console.error('Failed to delete user:', error);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, [page, pageSize]);
+    void Promise.resolve().then(fetchUsers);
+  }, [fetchUsers]);
 
   return (
     <div className="space-y-6">

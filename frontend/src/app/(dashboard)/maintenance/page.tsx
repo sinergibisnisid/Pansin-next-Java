@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Wrench,
@@ -40,6 +40,17 @@ const emptyForm = {
   nextDueAt: '',
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? fallback;
+  }
+
+  if (error instanceof Error) return error.message;
+
+  return fallback;
+}
+
 export default function MaintenancePage() {
   const [tab, setTab] = useState<'plans' | 'logs'>('plans');
   const [plans, setPlans] = useState<MaintenancePlan[]>([]);
@@ -57,7 +68,7 @@ export default function MaintenancePage() {
 
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
 
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await maintenanceService.getPlans();
@@ -69,9 +80,9 @@ export default function MaintenancePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     try {
       const data = await maintenanceService.getLogs();
       setLogs(data);
@@ -79,12 +90,11 @@ export default function MaintenancePage() {
       console.error('Failed to fetch maintenance logs:', error);
       setLogs([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPlans();
-    fetchLogs();
-  }, []);
+    void Promise.resolve().then(() => Promise.all([fetchPlans(), fetchLogs()]));
+  }, [fetchPlans, fetchLogs]);
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.type) return;
@@ -94,8 +104,8 @@ export default function MaintenancePage() {
       fetchPlans();
       setIsAddDialogOpen(false);
       setFormData({ ...emptyForm });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create maintenance plan');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to create maintenance plan'));
       console.error('Failed to create maintenance plan:', error);
     } finally {
       setIsSubmitting(false);
@@ -126,8 +136,8 @@ export default function MaintenancePage() {
       fetchPlans();
       setIsEditDialogOpen(false);
       setEditingPlan(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update maintenance plan');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to update maintenance plan'));
       console.error('Failed to update maintenance plan:', error);
     } finally {
       setIsSubmitting(false);
@@ -140,8 +150,8 @@ export default function MaintenancePage() {
       await maintenanceService.deletePlan(deletePlanId);
       fetchPlans();
       setDeletePlanId(null);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete maintenance plan');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to delete maintenance plan'));
       console.error('Failed to delete maintenance plan:', error);
     }
   };

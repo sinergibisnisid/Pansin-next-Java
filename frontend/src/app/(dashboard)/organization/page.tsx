@@ -14,12 +14,28 @@ import { type ColumnDef } from '@tanstack/react-table';
 import type { BackendBranch, BackendOrganization } from '@/types';
 import { branchService, organizationService } from '@/services';
 
+type BranchWithStats = BackendBranch & {
+  totalVaults?: number;
+  totalDevices?: number;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? fallback;
+  }
+
+  if (error instanceof Error) return error.message;
+
+  return fallback;
+}
+
 
 export default function OrganizationPage() {
   const [search, setSearch] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [branches, setBranches] = useState<BackendBranch[]>([]);
+  const [branches, setBranches] = useState<BranchWithStats[]>([]);
   const [organizations, setOrganizations] = useState<BackendOrganization[]>([]);
   const [formData, setFormData] = useState({ 
     organizationId: '', 
@@ -33,7 +49,7 @@ export default function OrganizationPage() {
     email: '', 
     timezone: 'Asia/Jakarta' 
   });
-  const [editingBranch, setEditingBranch] = useState<BackendBranch | null>(null);
+  const [editingBranch, setEditingBranch] = useState<BranchWithStats | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,15 +61,15 @@ export default function OrganizationPage() {
       setBranches([...branches, newBranch]);
       setIsAddDialogOpen(false);
       setFormData({ organizationId: '', name: '', code: '', city: '', province: '', postalCode: '', address: '', phone: '', email: '', timezone: 'Asia/Jakarta' });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create branch. Code may already exist.');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to create branch. Code may already exist.'));
       console.error('Failed to create branch:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleEdit = (branch: BackendBranch) => {
+  const handleEdit = (branch: BranchWithStats) => {
     setEditingBranch(branch);
     setFormData({
       organizationId: branch.organizationId || branch.organization?.id || '',
@@ -79,8 +95,8 @@ export default function OrganizationPage() {
       setIsEditDialogOpen(false);
       setEditingBranch(null);
       setFormData({ organizationId: '', name: '', code: '', city: '', province: '', postalCode: '', address: '', phone: '', email: '', timezone: 'Asia/Jakarta' });
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to update branch.');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to update branch.'));
       console.error('Failed to update branch:', error);
     } finally {
       setIsSubmitting(false);
@@ -92,13 +108,13 @@ export default function OrganizationPage() {
     try {
       await branchService.delete(id);
       setBranches(branches.filter(b => b.id !== id));
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to delete branch.');
+    } catch (error: unknown) {
+      alert(getErrorMessage(error, 'Failed to delete branch.'));
       console.error('Failed to delete branch:', error);
     }
   };
 
-  const columns: ColumnDef<BackendBranch>[] = [
+  const columns: ColumnDef<BranchWithStats>[] = [
     {
       accessorKey: 'name',
       header: 'Organization',
@@ -141,12 +157,12 @@ export default function OrganizationPage() {
     {
       accessorKey: 'totalVaults',
       header: 'Vaults',
-      cell: ({ row }) => <span className="text-sm">{(row.original as any).totalVaults || 0}</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.totalVaults || 0}</span>,
     },
     {
       accessorKey: 'totalDevices',
       header: 'Devices',
-      cell: ({ row }) => <span className="text-sm">{(row.original as any).totalDevices || 0}</span>,
+      cell: ({ row }) => <span className="text-sm">{row.original.totalDevices || 0}</span>,
     },
     {
       accessorKey: 'active',
@@ -190,7 +206,7 @@ export default function OrganizationPage() {
           organizationService.getAll()
         ]);
         setBranches(Array.isArray(branchData) ? branchData : []);
-        setOrganizations(Array.isArray(orgData) ? orgData as any : []);
+        setOrganizations(Array.isArray(orgData) ? orgData : []);
       } catch (error) {
         console.error('Failed to fetch data:', error);
         setBranches([]);
@@ -199,7 +215,7 @@ export default function OrganizationPage() {
         setIsLoading(false);
       }
     };
-    fetchData();
+    void Promise.resolve().then(fetchData);
   }, []);
 
   const filtered = branches.filter(

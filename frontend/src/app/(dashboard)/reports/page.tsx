@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileText, Download, Calendar, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/tables/data-table';
@@ -93,6 +93,17 @@ const columns: ColumnDef<AuditLog>[] = [
   },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message ?? fallback;
+  }
+
+  if (error instanceof Error) return error.message;
+
+  return fallback;
+}
+
 export default function ReportsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -101,7 +112,7 @@ export default function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await reportService.getLogs({
@@ -116,11 +127,11 @@ export default function ReportsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [categoryFilter, severityFilter]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [categoryFilter, severityFilter]);
+    void Promise.resolve().then(fetchLogs);
+  }, [fetchLogs]);
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = window.URL.createObjectURL(blob);
@@ -148,9 +159,9 @@ export default function ReportsPage() {
       else if (type === 'excel') blob = await reportService.exportExcel(params);
       else blob = await reportService.exportPDF(params);
       downloadFile(blob, getFilename(type === 'excel' ? 'xlsx' : type));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Export failed:', error);
-      alert(`Export failed: ${error.response?.data?.message || error.message || 'Unknown error'}`);
+      alert(`Export failed: ${getErrorMessage(error, 'Unknown error')}`);
     } finally {
       setIsExporting(false);
     }
