@@ -35,6 +35,7 @@ services:
     restart: unless-stopped
 
   mosquitto:
+    profiles: ["infra-optional"]
     image: eclipse-mosquitto:2.0
     container_name: pansin-mosquitto
     ports:
@@ -48,6 +49,7 @@ services:
     restart: unless-stopped
 
   zookeeper:
+    profiles: ["infra-optional"]
     image: confluentinc/cp-zookeeper:7.6.0
     container_name: pansin-zookeeper
     environment:
@@ -56,6 +58,7 @@ services:
     restart: unless-stopped
 
   kafka:
+    profiles: ["infra-optional"]
     image: confluentinc/cp-kafka:7.6.0
     container_name: pansin-kafka
     depends_on:
@@ -82,10 +85,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      mosquitto:
-        condition: service_started
-      kafka:
-        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/pansin
@@ -93,10 +92,10 @@ services:
       DB_PASSWORD: pansin
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      KAFKA_BOOTSTRAP: kafka:29092
-      MQTT_URL: tcp://mosquitto:1883
-      MQTT_USERNAME: pansin
-      MQTT_PASSWORD: pansin
+      APP_KAFKA_ENABLED: ${APP_KAFKA_ENABLED:-false}
+      MQTT_URL: ${MQTT_URL:-tcp://localhost:1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-pansin}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-pansin}
       JWT_SECRET: change-me-with-a-very-long-random-base64-secret-key-please-rotate
     ports:
       - "8080:8080"
@@ -105,6 +104,7 @@ services:
     restart: unless-stopped
 
   prometheus:
+    profiles: ["observability"]
     image: prom/prometheus:v2.54.0
     container_name: pansin-prometheus
     volumes:
@@ -115,6 +115,7 @@ services:
     restart: unless-stopped
 
   grafana:
+    profiles: ["observability"]
     image: grafana/grafana:11.2.0
     container_name: pansin-grafana
     environment:
@@ -126,6 +127,7 @@ services:
     restart: unless-stopped
 
   nginx:
+    profiles: ["infra-optional"]
     image: nginx:1.27-alpine
     container_name: pansin-nginx
     depends_on:

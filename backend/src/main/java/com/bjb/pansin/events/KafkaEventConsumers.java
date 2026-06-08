@@ -1,12 +1,12 @@
 package com.bjb.pansin.events;
 
 import com.bjb.pansin.modules.audit.service.AuditService;
-import com.bjb.pansin.modules.snapshot.service.SnapshotService;
 import com.bjb.pansin.modules.vault.event.AlarmTriggeredEvent;
 import com.bjb.pansin.modules.vault.event.VaultClosedEvent;
 import com.bjb.pansin.modules.vault.event.VaultOpenedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +18,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class KafkaEventConsumers {
 

@@ -9,6 +9,7 @@ import com.bjb.pansin.modules.vault.event.VaultOpenedEvent;
 import com.bjb.pansin.modules.websocket.service.WebSocketBroadcaster;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -29,6 +30,9 @@ public class VaultEventBridge {
     @Autowired(required = false)
     private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Value("${app.kafka.enabled:false}")
+    private boolean kafkaEnabled;
+
     public VaultEventBridge(MqttPublisher mqttPublisher, MqttProperties mqttProperties,
                            WebSocketBroadcaster broadcaster, ApplicationEventPublisher applicationEventPublisher) {
         this.mqttPublisher = mqttPublisher;
@@ -44,7 +48,7 @@ public class VaultEventBridge {
     @EventListener
     public void onOpened(VaultOpenedEvent event) {
         broadcaster.broadcast(WebSocketBroadcaster.TOPIC_VAULT, event);
-        if (kafkaTemplate != null) {
+        if (kafkaEnabled && kafkaTemplate != null) {
             kafkaTemplate.send(TOPIC_VAULT, "open:" + event.getVaultId(), event);
         }
         mqttPublisher.publish(mqttProperties.getTopics().getVaultOpen(), event);
@@ -54,7 +58,7 @@ public class VaultEventBridge {
     @EventListener
     public void onClosed(VaultClosedEvent event) {
         broadcaster.broadcast(WebSocketBroadcaster.TOPIC_VAULT, event);
-        if (kafkaTemplate != null) {
+        if (kafkaEnabled && kafkaTemplate != null) {
             kafkaTemplate.send(TOPIC_VAULT, "close:" + event.getVaultId(), event);
         }
         mqttPublisher.publish(mqttProperties.getTopics().getVaultClose(), event);
@@ -71,7 +75,7 @@ public class VaultEventBridge {
     @Async("taskExecutor")
     @EventListener
     public void onAlarm(AlarmTriggeredEvent event) {
-        if (kafkaTemplate != null) {
+        if (kafkaEnabled && kafkaTemplate != null) {
             kafkaTemplate.send(TOPIC_ALARM, "alarm:" + event.getVaultId(), event);
         }
         mqttPublisher.publish(mqttProperties.getTopics().getVaultAlarm(), event);

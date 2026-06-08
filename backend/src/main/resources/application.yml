@@ -198,6 +198,7 @@ app:
     report-path: ${STORAGE_PATH:./storage}/reports
 
   kafka:
+    enabled: ${APP_KAFKA_ENABLED:false}
     topics:
       vault-events: vault-events
       alarm-events: alarm-events

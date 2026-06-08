@@ -41,10 +41,15 @@ backend/
 
 ## Quick start (local with Docker Compose)
 
+Default Compose startup is intentionally minimal: `postgres`, `redis`, and `pansin-api`.
+Optional infrastructure uses Compose profiles:
+- `infra-optional`: Mosquitto, Kafka, Zookeeper, bundled Nginx
+- `observability`: Prometheus, Grafana
+
 1. Copy `.env.example` to `.env` and adjust values (especially `JWT_SECRET`).
-2. Bring up the infra:
+2. Bring up the required infra:
    ```
-   docker compose up -d postgres redis mosquitto kafka zookeeper
+   docker compose up -d postgres redis
    ```
 3. Build the API image:
    ```
@@ -52,15 +57,20 @@ backend/
    ```
 4. Apply migrations manually (Flyway is intentionally disabled at startup):
    ```
-   docker compose run --rm pansin-api java -jar app.jar \
+   docker compose run --no-deps --rm pansin-api java -jar app.jar \
      --spring.flyway.enabled=true --spring.flyway.baseline-on-migrate=true
    ```
    or run them with `psql` directly from `src/main/resources/db/migration`.
-5. Start everything:
+5. Start the API:
    ```
-   docker compose up -d
+   docker compose up -d pansin-api
    ```
-6. The API listens on `http://localhost:8080` (or via Nginx on `:80`).
+6. Start optional services only when needed, for example:
+   ```
+   docker compose --profile infra-optional up -d mosquitto nginx
+   docker compose --profile observability up -d prometheus grafana
+   ```
+7. The API listens on `http://localhost:8080` (or via Nginx on `:80`).
 
 ## Run from source (dev)
 
