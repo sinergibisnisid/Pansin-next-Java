@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Building2, Search, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Building2, Search, MapPin, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,6 +49,7 @@ export default function OrganizationPage() {
     timezone: 'Asia/Jakarta' 
   });
   const [editingBranch, setEditingBranch] = useState<BranchWithStats | null>(null);
+  const [deleteBranchId, setDeleteBranchId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -103,11 +103,12 @@ export default function OrganizationPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this branch?')) return;
+  const handleDelete = async () => {
+    if (!deleteBranchId) return;
     try {
-      await branchService.delete(id);
-      setBranches(branches.filter(b => b.id !== id));
+      await branchService.delete(deleteBranchId);
+      setBranches(branches.filter(b => b.id !== deleteBranchId));
+      setDeleteBranchId(null);
     } catch (error: unknown) {
       alert(getErrorMessage(error, 'Failed to delete branch.'));
       console.error('Failed to delete branch:', error);
@@ -188,7 +189,7 @@ export default function OrganizationPage() {
             size="sm"
             variant="ghost"
             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-            onClick={() => handleDelete(row.original.id)}
+            onClick={() => setDeleteBranchId(row.original.id)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -264,11 +265,11 @@ export default function OrganizationPage() {
 
       {/* Add Branch Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle>Add New Branch</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
               <Label>Organization *</Label>
               <Select
@@ -276,7 +277,9 @@ export default function OrganizationPage() {
                 onValueChange={(value) => setFormData({...formData, organizationId: value as string})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
+                  <SelectValue placeholder="Select organization">
+                    {organizations.find((org) => org.id === formData.organizationId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {organizations.map((org) => (
@@ -288,19 +291,27 @@ export default function OrganizationPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Branch Name</Label>
+              <Label>Branch Code *</Label>
+              <Input 
+                placeholder="Enter branch code" 
+                value={formData.code}
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Branch Name *</Label>
               <Input 
                 placeholder="Enter branch name" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Branch Code</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Address</Label>
               <Input 
-                placeholder="Enter branch code" 
-                value={formData.code}
-                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                placeholder="Enter address" 
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
               />
             </div>
             <div className="space-y-2">
@@ -328,14 +339,6 @@ export default function OrganizationPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Address</Label>
-              <Input 
-                placeholder="Enter address" 
-                value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Phone</Label>
               <Input 
                 placeholder="Enter phone" 
@@ -343,7 +346,7 @@ export default function OrganizationPage() {
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Email</Label>
               <Input 
                 placeholder="Enter email" 
@@ -363,11 +366,11 @@ export default function OrganizationPage() {
 
       {/* Edit Branch Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Branch</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
               <Label>Organization *</Label>
               <Select
@@ -375,7 +378,9 @@ export default function OrganizationPage() {
                 onValueChange={(value) => setFormData({...formData, organizationId: value as string})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
+                  <SelectValue placeholder="Select organization">
+                    {organizations.find((org) => org.id === formData.organizationId)?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {organizations.map((org) => (
@@ -387,20 +392,28 @@ export default function OrganizationPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Branch Name</Label>
+              <Label>Branch Code *</Label>
+              <Input 
+                placeholder="Enter branch code" 
+                value={formData.code}
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                disabled
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Branch Name *</Label>
               <Input 
                 placeholder="Enter branch name" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Branch Code</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Address</Label>
               <Input 
-                placeholder="Enter branch code" 
-                value={formData.code}
-                onChange={(e) => setFormData({...formData, code: e.target.value})}
-                disabled
+                placeholder="Enter address" 
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
               />
             </div>
             <div className="space-y-2">
@@ -428,14 +441,6 @@ export default function OrganizationPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Address</Label>
-              <Input 
-                placeholder="Enter address" 
-                value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Phone</Label>
               <Input 
                 placeholder="Enter phone" 
@@ -443,7 +448,7 @@ export default function OrganizationPage() {
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Email</Label>
               <Input 
                 placeholder="Enter email" 
@@ -456,6 +461,29 @@ export default function OrganizationPage() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdate} disabled={isSubmitting}>
               {isSubmitting ? 'Updating...' : 'Update Branch'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Branch Dialog */}
+      <Dialog open={!!deleteBranchId} onOpenChange={(open) => !open && setDeleteBranchId(null)}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 mb-3">
+              <AlertTriangle className="h-6 w-6 text-red-400" />
+            </div>
+            <DialogTitle className="text-center text-red-300">Delete Branch</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-center text-muted-foreground">
+            Apakah Anda yakin ingin menghapus kantor cabang ini? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteBranchId(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
