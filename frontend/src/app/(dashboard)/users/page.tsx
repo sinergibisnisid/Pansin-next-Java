@@ -16,6 +16,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { getInitials } from '@/lib/utils';
 import type { User, Role } from '@/types';
 import { userService, roleService } from '@/services';
+import { toast } from 'sonner';
 
 const roleColors: Record<string, string> = {
   SUPER_ADMIN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
@@ -213,6 +214,7 @@ export default function UsersPage() {
     try {
       await userService.create(formData);
       fetchUsers();
+      toast.success('Pengguna berhasil dibuat');
       setIsAddDialogOpen(false);
       setFormData({ 
         fullName: '', 
@@ -225,7 +227,7 @@ export default function UsersPage() {
         roleCodes: ['OPERATOR'] 
       });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to create user'));
+      toast.error(getErrorMessage(error, 'Failed to create user'));
       console.error('Failed to create user:', error);
     } finally {
       setIsSubmitting(false);
@@ -252,10 +254,11 @@ export default function UsersPage() {
     try {
       await userService.update(editingUser.id, editFormData);
       fetchUsers();
+      toast.success('Pengguna berhasil diperbarui');
       setIsEditDialogOpen(false);
       setEditingUser(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update user'));
+      toast.error(getErrorMessage(error, 'Failed to update user'));
       console.error('Failed to update user:', error);
     } finally {
       setIsSubmitting(false);
@@ -267,9 +270,10 @@ export default function UsersPage() {
     try {
       await userService.delete(deleteUserId);
       fetchUsers();
+      toast.success('Pengguna berhasil dihapus');
       setDeleteUserId(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete user'));
+      toast.error(getErrorMessage(error, 'Failed to delete user'));
       console.error('Failed to delete user:', error);
     }
   };
@@ -399,7 +403,10 @@ export default function UsersPage() {
               <Label>Role</Label>
               <Select 
                 value={formData.roleCodes[0] || 'OPERATOR'} 
-                onValueChange={(value) => setFormData({...formData, roleCodes: [value]})}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setFormData({ ...formData, roleCodes: [value] });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -475,7 +482,10 @@ export default function UsersPage() {
               <Label>Role</Label>
               <Select 
                 value={editFormData.roleCodes[0] || ''} 
-                onValueChange={(value) => setEditFormData({...editFormData, roleCodes: [value]})}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setEditFormData({ ...editFormData, roleCodes: [value] });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
