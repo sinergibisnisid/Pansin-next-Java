@@ -105,6 +105,7 @@ export const SIDEBAR_MENU = [
     items: [
       { label: 'Organization', href: '/organization', icon: 'Building2', permission: 'organization.view' as const },
       { label: 'Users', href: '/users', icon: 'Users', permission: 'users.view' as const },
+      { label: 'Roles', href: '/roles', icon: 'Shield', permission: 'users.view' as const },
       { label: 'Permissions', href: '/permissions', icon: 'KeyRound', permission: 'users.view' as const },
       { label: 'Devices', href: '/devices', icon: 'Cpu', permission: 'devices.view' as const },
     ],

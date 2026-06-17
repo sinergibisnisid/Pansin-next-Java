@@ -23,6 +23,15 @@ export interface User {
   createdAt: string;
 }
 
+export interface Role {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  system: boolean;
+  permissions: string[];
+}
+
 export type UserRole = 
   | 'SUPER_ADMIN'
   | 'ADMIN_PUSAT'

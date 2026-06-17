@@ -10,10 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { type ColumnDef } from '@tanstack/react-table';
 import { getInitials } from '@/lib/utils';
-import type { User } from '@/types';
-import { userService } from '@/services';
+import type { User, Role } from '@/types';
+import { userService, roleService } from '@/services';
 
 const roleColors: Record<string, string> = {
   SUPER_ADMIN: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
@@ -156,12 +158,16 @@ export default function UsersPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [formData, setFormData] = useState({ 
     fullName: '', 
     username: '', 
     email: '', 
-    password: '', 
+    password: '',
+    phone: '',
+    nik: '',
+    employeeId: '',
     roleCodes: ['OPERATOR'] as string[] 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -192,6 +198,15 @@ export default function UsersPage() {
     }
   }, [page, pageSize]);
 
+  const fetchRoles = useCallback(async () => {
+    try {
+      const rolesData = await roleService.getAll();
+      setRoles(rolesData);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+    }
+  }, []);
+
   const handleSubmit = async () => {
     if (!formData.fullName || !formData.username || !formData.email || !formData.password) return;
     setIsSubmitting(true);
@@ -199,7 +214,16 @@ export default function UsersPage() {
       await userService.create(formData);
       fetchUsers();
       setIsAddDialogOpen(false);
-      setFormData({ fullName: '', username: '', email: '', password: '', roleCodes: ['OPERATOR'] });
+      setFormData({ 
+        fullName: '', 
+        username: '', 
+        email: '', 
+        password: '', 
+        phone: '', 
+        nik: '', 
+        employeeId: '', 
+        roleCodes: ['OPERATOR'] 
+      });
     } catch (error: unknown) {
       alert(getErrorMessage(error, 'Failed to create user'));
       console.error('Failed to create user:', error);
@@ -252,7 +276,8 @@ export default function UsersPage() {
 
   useEffect(() => {
     void Promise.resolve().then(fetchUsers);
-  }, [fetchUsers]);
+    void Promise.resolve().then(fetchRoles);
+  }, [fetchUsers, fetchRoles]);
 
   return (
     <div className="space-y-6">
@@ -311,7 +336,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input 
@@ -346,6 +371,48 @@ export default function UsersPage() {
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Phone (Optional)</Label>
+              <Input 
+                placeholder="Enter phone number" 
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>NIK (Optional)</Label>
+              <Input 
+                placeholder="Enter NIK" 
+                value={formData.nik}
+                onChange={(e) => setFormData({...formData, nik: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Employee ID (Optional)</Label>
+              <Input 
+                placeholder="Enter employee ID" 
+                value={formData.employeeId}
+                onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select 
+                value={formData.roleCodes[0] || 'OPERATOR'} 
+                onValueChange={(value) => setFormData({...formData, roleCodes: [value]})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.code}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
@@ -362,7 +429,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input 
@@ -402,6 +469,32 @@ export default function UsersPage() {
                 placeholder="Enter employee ID" 
                 value={editFormData.employeeId}
                 onChange={(e) => setEditFormData({...editFormData, employeeId: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select 
+                value={editFormData.roleCodes[0] || ''} 
+                onValueChange={(value) => setEditFormData({...editFormData, roleCodes: [value]})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.code}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="enabled-switch">Status (Enabled)</Label>
+              <Switch 
+                id="enabled-switch"
+                checked={editFormData.enabled}
+                onCheckedChange={(checked) => setEditFormData({...editFormData, enabled: checked})}
               />
             </div>
           </div>
