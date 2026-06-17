@@ -184,19 +184,17 @@ export default function RolesPage() {
           <TooltipProvider>
             <div className="flex gap-2">
               <Tooltip>
-                <TooltipTrigger>
-                  <span className="inline-flex">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(row.original)}
-                      disabled={isSystemRole}
-                      className="disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={isSystemRole ? disabledMessage : 'Edit role'}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </span>
+                <TooltipTrigger render={<span className="inline-flex" />}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleEdit(row.original)}
+                    disabled={isSystemRole}
+                    className="disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label={isSystemRole ? disabledMessage : 'Edit role'}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   {isSystemRole ? disabledMessage : 'Edit role'}
@@ -204,19 +202,17 @@ export default function RolesPage() {
               </Tooltip>
 
               <Tooltip>
-                <TooltipTrigger>
-                  <span className="inline-flex">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setDeleteRoleId(row.original.id)}
-                      disabled={isSystemRole}
-                      className="disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={isSystemRole ? disabledMessage : 'Delete role'}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </span>
+                <TooltipTrigger render={<span className="inline-flex" />}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setDeleteRoleId(row.original.id)}
+                    disabled={isSystemRole}
+                    className="disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label={isSystemRole ? disabledMessage : 'Delete role'}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
                   {isSystemRole ? disabledMessage : 'Delete role'}
