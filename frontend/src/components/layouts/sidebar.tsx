@@ -44,6 +44,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   AlertTriangle,
   KeyRound,
+  Shield,
 };
 
 export function Sidebar() {
@@ -119,7 +120,7 @@ export function Sidebar() {
         <Separator className="opacity-40" />
 
         {/* Mobile Navigation */}
-        <ScrollArea className="flex-1 px-3 py-4">
+        <ScrollArea className="min-h-0 flex-1 px-3 py-4">
           <nav className="space-y-6">
             {SIDEBAR_MENU.map((group) => (
               <div key={group.group}>
@@ -185,7 +186,7 @@ export function Sidebar() {
       <Separator className="opacity-40" />
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-4">
+      <ScrollArea className="min-h-0 flex-1 px-3 py-4">
         <nav className="space-y-6">
           {SIDEBAR_MENU.map((group) => (
             <div key={group.group}>
