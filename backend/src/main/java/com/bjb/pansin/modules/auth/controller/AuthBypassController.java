@@ -11,6 +11,7 @@ import com.bjb.pansin.modules.auth.service.TokenService;
 import com.bjb.pansin.modules.user.entity.User;
 import com.bjb.pansin.modules.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +47,9 @@ public class AuthBypassController {
      * Direct login without OTP (DEV only)
      */
     @PostMapping("/login-no-otp")
-    public ResponseEntity<ApiResponse<TokenResponse>> loginNoOtp(@Valid @RequestBody LoginRequest req) {
+    public ResponseEntity<ApiResponse<TokenResponse>> loginNoOtp(
+            @Valid @RequestBody LoginRequest req,
+            HttpServletRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getIdentifier(), req.getPassword()));
@@ -54,6 +57,20 @@ public class AuthBypassController {
             AppUserPrincipal principal = (AppUserPrincipal) authentication.getPrincipal();
             User user = userRepository.findById(principal.getId())
                     .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+            // Get client IP address
+            String clientIp = request.getHeader("X-Forwarded-For");
+            if (clientIp == null || clientIp.isEmpty()) {
+                clientIp = request.getRemoteAddr();
+            }
+            if (clientIp == null) {
+                clientIp = "127.0.0.1";
+            }
+
+            // Update user last login
+            user.setLastLoginAt(java.time.Instant.now());
+            user.setLastLoginIp(clientIp);
+            userRepository.save(user);
 
             Map<String, Object> claims = new HashMap<>();
             claims.put("roles", principal.getRoles());
