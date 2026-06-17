@@ -12,6 +12,7 @@ import { StatusBadge } from '@/components/shared/status-badge';
 import { type ColumnDef } from '@tanstack/react-table';
 import type { BackendBranch, BackendOrganization } from '@/types';
 import { branchService, organizationService } from '@/services';
+import { toast } from 'sonner';
 
 type BranchWithStats = BackendBranch & {
   totalVaults?: number;
@@ -59,10 +60,11 @@ export default function OrganizationPage() {
     try {
       const newBranch = await branchService.create(formData);
       setBranches([...branches, newBranch]);
+      toast.success('Cabang berhasil ditambahkan');
       setIsAddDialogOpen(false);
       setFormData({ organizationId: '', name: '', code: '', city: '', province: '', postalCode: '', address: '', phone: '', email: '', timezone: 'Asia/Jakarta' });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to create branch. Code may already exist.'));
+      toast.error(getErrorMessage(error, 'Failed to create branch. Code may already exist.'));
       console.error('Failed to create branch:', error);
     } finally {
       setIsSubmitting(false);
@@ -92,11 +94,12 @@ export default function OrganizationPage() {
     try {
       const updated = await branchService.update(editingBranch.id, formData);
       setBranches(branches.map(b => b.id === editingBranch.id ? updated : b));
+      toast.success('Cabang berhasil diperbarui');
       setIsEditDialogOpen(false);
       setEditingBranch(null);
       setFormData({ organizationId: '', name: '', code: '', city: '', province: '', postalCode: '', address: '', phone: '', email: '', timezone: 'Asia/Jakarta' });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update branch.'));
+      toast.error(getErrorMessage(error, 'Failed to update branch.'));
       console.error('Failed to update branch:', error);
     } finally {
       setIsSubmitting(false);
@@ -108,9 +111,10 @@ export default function OrganizationPage() {
     try {
       await branchService.delete(deleteBranchId);
       setBranches(branches.filter(b => b.id !== deleteBranchId));
+      toast.success('Cabang berhasil dihapus');
       setDeleteBranchId(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete branch.'));
+      toast.error(getErrorMessage(error, 'Failed to delete branch.'));
       console.error('Failed to delete branch:', error);
     }
   };

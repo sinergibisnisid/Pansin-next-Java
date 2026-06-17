@@ -13,6 +13,7 @@ import { type ColumnDef } from '@tanstack/react-table';
 import { Progress } from '@/components/ui/progress';
 import type { Device } from '@/types';
 import { deviceService } from '@/services';
+import { toast } from 'sonner';
 
 const statusColors: Record<string, string> = {
   ONLINE: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
@@ -188,10 +189,11 @@ export default function DevicesPage() {
     try {
       await deviceService.create(formData);
       fetchDevices();
+      toast.success('Perangkat berhasil ditambahkan');
       setIsAddDialogOpen(false);
       setFormData({ branchId: '', vaultId: '', deviceCode: '', name: '', type: 'CONTROLLER', ipAddress: '', macAddress: '', firmwareVersion: '' });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to create device'));
+      toast.error(getErrorMessage(error, 'Failed to create device'));
       console.error('Failed to create device:', error);
     } finally {
       setIsSubmitting(false);
@@ -219,10 +221,11 @@ export default function DevicesPage() {
     try {
       await deviceService.update(editingDevice.id, editFormData);
       fetchDevices();
+      toast.success('Perangkat berhasil diperbarui');
       setIsEditDialogOpen(false);
       setEditingDevice(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update device'));
+      toast.error(getErrorMessage(error, 'Failed to update device'));
       console.error('Failed to update device:', error);
     } finally {
       setIsSubmitting(false);
@@ -234,9 +237,10 @@ export default function DevicesPage() {
     try {
       await deviceService.delete(deleteDeviceId);
       fetchDevices();
+      toast.success('Perangkat berhasil dihapus');
       setDeleteDeviceId(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete device'));
+      toast.error(getErrorMessage(error, 'Failed to delete device'));
       console.error('Failed to delete device:', error);
     }
   };

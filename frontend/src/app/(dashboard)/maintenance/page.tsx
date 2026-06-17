@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import type { MaintenancePlan, MaintenanceLog } from '@/types';
 import { maintenanceService } from '@/services';
+import { toast } from 'sonner';
 
 const typeColors: Record<string, string> = {
   cleaning: 'bg-cyan-500/20 text-cyan-400',
@@ -102,10 +103,11 @@ export default function MaintenancePage() {
     try {
       await maintenanceService.createPlan(formData);
       fetchPlans();
+      toast.success('Rencana pemeliharaan berhasil dibuat');
       setIsAddDialogOpen(false);
       setFormData({ ...emptyForm });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to create maintenance plan'));
+      toast.error(getErrorMessage(error, 'Failed to create maintenance plan'));
       console.error('Failed to create maintenance plan:', error);
     } finally {
       setIsSubmitting(false);
@@ -134,10 +136,11 @@ export default function MaintenancePage() {
     try {
       await maintenanceService.updatePlan(editingPlan.id, editFormData);
       fetchPlans();
+      toast.success('Rencana pemeliharaan berhasil diperbarui');
       setIsEditDialogOpen(false);
       setEditingPlan(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update maintenance plan'));
+      toast.error(getErrorMessage(error, 'Failed to update maintenance plan'));
       console.error('Failed to update maintenance plan:', error);
     } finally {
       setIsSubmitting(false);
@@ -149,9 +152,10 @@ export default function MaintenancePage() {
     try {
       await maintenanceService.deletePlan(deletePlanId);
       fetchPlans();
+      toast.success('Rencana pemeliharaan berhasil dihapus');
       setDeletePlanId(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete maintenance plan'));
+      toast.error(getErrorMessage(error, 'Failed to delete maintenance plan'));
       console.error('Failed to delete maintenance plan:', error);
     }
   };

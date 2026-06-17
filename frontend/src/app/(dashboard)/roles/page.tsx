@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { type ColumnDef } from '@tanstack/react-table';
 import type { Role, PermissionRecord } from '@/types';
 import { roleService, permissionService } from '@/services';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -77,10 +78,11 @@ export default function RolesPage() {
     try {
       await roleService.create(formData);
       fetchRoles();
+      toast.success('Role berhasil dibuat');
       setIsAddDialogOpen(false);
       setFormData({ code: '', name: '', description: '', permissionCodes: [] });
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to create role'));
+      toast.error(getErrorMessage(error, 'Failed to create role'));
       console.error('Failed to create role:', error);
     } finally {
       setIsSubmitting(false);
@@ -104,10 +106,11 @@ export default function RolesPage() {
     try {
       await roleService.update(editingRole.id, editFormData);
       fetchRoles();
+      toast.success('Role berhasil diperbarui');
       setIsEditDialogOpen(false);
       setEditingRole(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to update role'));
+      toast.error(getErrorMessage(error, 'Failed to update role'));
       console.error('Failed to update role:', error);
     } finally {
       setIsSubmitting(false);
@@ -119,9 +122,10 @@ export default function RolesPage() {
     try {
       await roleService.delete(deleteRoleId);
       fetchRoles();
+      toast.success('Role berhasil dihapus');
       setDeleteRoleId(null);
     } catch (error: unknown) {
-      alert(getErrorMessage(error, 'Failed to delete role'));
+      toast.error(getErrorMessage(error, 'Failed to delete role'));
       console.error('Failed to delete role:', error);
     }
   };
