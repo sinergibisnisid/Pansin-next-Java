@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type ColumnDef } from '@tanstack/react-table';
 import type { Role, PermissionRecord } from '@/types';
 import { roleService, permissionService } from '@/services';
@@ -171,26 +172,56 @@ export default function RolesPage() {
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => handleEdit(row.original)}
-            disabled={row.original.system}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setDeleteRoleId(row.original.id)}
-            disabled={row.original.system}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isSystemRole = row.original.system;
+        const disabledMessage = 'Peran sistem tidak dapat diubah atau dihapus';
+
+        return (
+          <TooltipProvider>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="inline-flex">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleEdit(row.original)}
+                      disabled={isSystemRole}
+                      className="disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={isSystemRole ? disabledMessage : 'Edit role'}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isSystemRole ? disabledMessage : 'Edit role'}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger>
+                  <span className="inline-flex">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDeleteRoleId(row.original.id)}
+                      disabled={isSystemRole}
+                      className="disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={isSystemRole ? disabledMessage : 'Delete role'}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isSystemRole ? disabledMessage : 'Delete role'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        );
+      },
     },
   ], []);
 
